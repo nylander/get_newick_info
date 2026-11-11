@@ -47,14 +47,23 @@ class OutputTests(unittest.TestCase):
                     expected,
                 )
 
-    def test_combined_options(self):
-        self.assertEqual(
-            self.run_info(
-                "--tl", "--support", "--taxa",
-                ROOT / "data" / "brlens_pp.tree",
-            ),
-            TAXA + SUPPORT + "0.48455999999999999\n",
-        )
+    def test_output_options_are_mutually_exclusive(self):
+        input_path = ROOT / "data" / "brlens_pp.tree"
+        for options in (
+            ("--taxa", "--support"),
+            ("--taxa", "--tl"),
+            ("--support", "--tl"),
+            ("-t", "--support"),
+        ):
+            with self.subTest(options=options):
+                result = subprocess.run(
+                    [str(PROGRAM), *options, str(input_path)],
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, "")
+                self.assertIn("mutually exclusive", result.stderr)
 
     def test_tree_length_example(self):
         self.assertEqual(
@@ -65,12 +74,28 @@ class OutputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "trees.nwk"
             path.write_text("(B:1,A:2)90;(A:3,C:4)80;\n")
-            self.assertEqual(self.run_info("--tl", path, path), "10\n10\n")
+            self.assertEqual(self.run_info("--tl", path, path), "3\n7\n3\n7\n")
             self.assertEqual(self.run_info("--taxa", path), "A\nB\nC\n")
             self.assertEqual(self.run_info("--support", path), "90\n80\n")
+            self.assertIn("Tree length, TL: 10\n", self.run_info(path))
             path.write_text("(A,B);\n")
             self.assertEqual(self.run_info("--tl", path), "0\n")
             self.assertEqual(self.run_info("--support", path), "")
+            path.write_text("")
+            self.assertEqual(self.run_info("--tl", path), "")
+            path.write_text("(A:1,B:2);" * 17)
+            self.assertEqual(self.run_info("--tl", path), "3\n" * 17)
+
+    def test_tl_does_not_print_partial_results_on_parse_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "invalid.nwk"
+            path.write_text("(A:1,B:2);(C:3,D:4)")
+            result = subprocess.run(
+                [str(PROGRAM), "--tl", str(path)], capture_output=True, text=True
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.stdout, "")
+            self.assertIn("expected ';'", result.stderr)
 
     def test_default_summary(self):
         path = ROOT / "data" / "brlens.tree"
