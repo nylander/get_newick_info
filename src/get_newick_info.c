@@ -13,7 +13,7 @@
  * Options:
  *   --taxa, -t       print sorted taxon labels
  *   --support       print recognized numeric internal-node support values
- *   --tl            print total tree length only
+ *   --tl            print tree length for each tree
  *   --tol VALUE      tolerance for ultrametric comparisons (default 1e-8)
  *   --help, -h       show help
  *
@@ -568,7 +568,8 @@ static void print_bool(bool b) {
 }
 
 static void print_file_report(const char *filename, const FileStats *fs,
-                              bool print_taxa, bool print_support, bool print_tl) {
+                              bool print_taxa, bool print_support, bool print_tl,
+                              const double *tree_lengths) {
     if (!print_taxa && !print_support && !print_tl) {
         printf("File: %s\n", filename);
         printf("Number of trees: %zu\n", fs->trees);
@@ -614,8 +615,10 @@ static void print_file_report(const char *filename, const FileStats *fs,
         for (size_t i = 0; i < fs->nsupports; i++)
             printf("%.17g\n", fs->supports[i]);
     }
-    if (print_tl)
-        printf("%.17g\n", fs->tree_length);
+    if (print_tl) {
+        for (size_t i = 0; i < fs->trees; i++)
+            printf("%.17g\n", tree_lengths[i]);
+    }
 
     if (!print_taxa && !print_support && !print_tl) {
         printf("Sum of support values: %.17g\n", fs->support_sum);
@@ -697,6 +700,8 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     size_t all_ntaxa = 0, all_taxa_cap = 0;
     double *all_supports = NULL;
     size_t all_nsupports = 0, all_support_cap = 0;
+    double *tree_lengths = NULL;
+    size_t tree_lengths_cap = 0;
 
     while (1) {
         skip_ws(&p);
@@ -712,6 +717,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
             free_stats(&fs);
             free(all_taxa);
             free(all_supports);
+            free(tree_lengths);
             return false;
         }
 
@@ -725,11 +731,20 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
             free_stats(&fs);
             free(all_taxa);
             free(all_supports);
+            free(tree_lengths);
             return false;
         }
 
         analyze_tree(root, &fs, tol);
 
+        if (print_tl) {
+            if (fs.trees == tree_lengths_cap) {
+                tree_lengths_cap = tree_lengths_cap ? tree_lengths_cap * 2 : 16;
+                tree_lengths = xrealloc(tree_lengths,
+                                        tree_lengths_cap * sizeof *tree_lengths);
+            }
+            tree_lengths[fs.trees] = fs.tree_length;
+        }
         fs.trees++;
         total_branch_lengths += fs.branch_lengths;
         total_tree_length += fs.tree_length;
@@ -801,9 +816,11 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     report.nsupports = all_nsupports;
     report.supports = all_supports;
 
-    print_file_report(filename, &report, print_taxa, print_support, print_tl);
+    print_file_report(filename, &report, print_taxa, print_support, print_tl,
+                      tree_lengths);
 
     free(text);
+    free(tree_lengths);
     free_stats(&fs);
     free_stats(&report);
     return true;
@@ -815,7 +832,7 @@ static void usage(const char *prog) {
     puts("Options:");
     puts("  --taxa, -t       print sorted taxon labels");
     puts("  --support        print numeric internal-node support values");
-    puts("  --tl             print total tree length only");
+    puts("  --tl             print tree length for each tree");
     puts("  --tol VALUE      ultrametric comparison tolerance (default 1e-8)");
     puts("  --help, -h       show this help");
     puts("");
