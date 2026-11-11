@@ -158,10 +158,6 @@ make test
 
 ## Limitations / design notes
 
-This is intentionally a small parser rather than a full NEXUS parser. It reads
-Newick trees from the supplied files; it does not parse NEXUS `BEGIN TREES`
-blocks or translate tables.
-
 For very deeply nested trees, the current implementation uses recursion while
 constructing the tree. Typical phylogenetic trees are fine, but pathological
 nesting can exhaust the C call stack.
