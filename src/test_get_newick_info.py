@@ -83,7 +83,7 @@ class OutputTests(unittest.TestCase):
             self.assertEqual(self.run_info("--tl", path, path), "3\n7\n3\n7\n")
             self.assertEqual(self.run_info("--taxa", path), "A\nB\nC\n")
             self.assertEqual(self.run_info("--support", path), "90\n80\n")
-            self.assertIn("Tree length, TL: 10\n", self.run_info(path))
+            self.assertIn("Tree length (TL): 10\n", self.run_info(path))
             path.write_text("(A,B);\n")
             self.assertEqual(self.run_info("--tl", path), "0\n")
             self.assertEqual(self.run_info("--support", path), "")
@@ -117,7 +117,7 @@ class OutputTests(unittest.TestCase):
             "Comments present (NHX or Enhanced Newick format): false\n"
             "Is the tree ultrametric: false\n"
             "Tree height: NA\n"
-            f"Tree length, TL: {TL}"
+            f"Tree length (TL): {TL}"
             "Mean resampling proportion (MRP): 0.54600000000000004\n"
             "Mean character support (MCS): 1.4038482366507115\n"
             "Sum of support values: 274\n\n",
