@@ -13,6 +13,7 @@
  * Options:
  *   --taxa, -t       print sorted taxon labels
  *   --support       print recognized numeric internal-node support values
+ *   --tl            print total tree length only
  *   --tol VALUE      tolerance for ultrametric comparisons (default 1e-8)
  *   --help, -h       show help
  *
@@ -567,8 +568,8 @@ static void print_bool(bool b) {
 }
 
 static void print_file_report(const char *filename, const FileStats *fs,
-                              bool print_taxa, bool print_support) {
-    if (!print_taxa && !print_support) {
+                              bool print_taxa, bool print_support, bool print_tl) {
+    if (!print_taxa && !print_support && !print_tl) {
         printf("File: %s\n", filename);
         printf("Number of trees: %zu\n", fs->trees);
         printf("Number of unique tip labels: %zu\n", fs->tips);
@@ -601,23 +602,22 @@ static void print_file_report(const char *filename, const FileStats *fs,
         for (size_t i = 0; i < fs->ntaxa; i++) copy[i] = fs->taxa[i];
         qsort(copy, fs->ntaxa, sizeof *copy, cmp_str);
 
-        printf("Taxon labels:\n");
-        //for (size_t i = 0; i < fs->ntaxa; i++)
-        //    printf("  %s\n", copy[i]);
         for (size_t i = 0; i < fs->ntaxa; i++) {
-        if (i == 0 || strcmp(copy[i], copy[i - 1]) != 0)
-            printf("  %s\n", copy[i]);
+            if (i == 0 || strcmp(copy[i], copy[i - 1]) != 0)
+                printf("%s\n", copy[i]);
         }
 
         free(copy);
     }
 
     if (print_support) {
-        printf("Support values:\n");
         for (size_t i = 0; i < fs->nsupports; i++)
-            printf("  %.17g\n", fs->supports[i]);
+            printf("%.17g\n", fs->supports[i]);
     }
-    if (!print_taxa && !print_support) {
+    if (print_tl)
+        printf("%.17g\n", fs->tree_length);
+
+    if (!print_taxa && !print_support && !print_tl) {
         printf("Sum of support values: %.17g\n", fs->support_sum);
         putchar('\n');
     }
@@ -667,7 +667,7 @@ static void free_stats(FileStats *fs) {
 }
 
 static bool parse_file(const char *filename, bool print_taxa, bool print_support,
-                       double tol) {
+                       bool print_tl, double tol) {
     size_t len;
     char *text = read_entire_file(filename, &len);
     if (!text) return false;
@@ -801,7 +801,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     report.nsupports = all_nsupports;
     report.supports = all_supports;
 
-    print_file_report(filename, &report, print_taxa, print_support);
+    print_file_report(filename, &report, print_taxa, print_support, print_tl);
 
     free(text);
     free_stats(&fs);
@@ -815,6 +815,7 @@ static void usage(const char *prog) {
     puts("Options:");
     puts("  --taxa, -t       print sorted taxon labels");
     puts("  --support        print numeric internal-node support values");
+    puts("  --tl             print total tree length only");
     puts("  --tol VALUE      ultrametric comparison tolerance (default 1e-8)");
     puts("  --help, -h       show this help");
     puts("");
@@ -824,6 +825,7 @@ static void usage(const char *prog) {
 int main(int argc, char **argv) {
     bool print_taxa = false;
     bool print_support = false;
+    bool print_tl = false;
     double tol = 1e-8;
 
     int first_file = 1;
@@ -836,6 +838,9 @@ int main(int argc, char **argv) {
             first_file++;
         } else if (strcmp(arg, "--support") == 0) {
             print_support = true;
+            first_file++;
+        } else if (strcmp(arg, "--tl") == 0) {
+            print_tl = true;
             first_file++;
         } else if (strcmp(arg, "--tol") == 0) {
             if (first_file + 1 >= argc) {
@@ -870,7 +875,7 @@ int main(int argc, char **argv) {
 
     int failures = 0;
     for (int i = first_file; i < argc; i++) {
-        if (!parse_file(argv[i], print_taxa, print_support, tol))
+        if (!parse_file(argv[i], print_taxa, print_support, print_tl, tol))
             failures++;
     }
 
