@@ -1,4 +1,4 @@
-# newick-info
+# get_newick_info
 
 A small standalone C99 command-line program for reporting statistics about
 Newick tree files.
@@ -12,24 +12,34 @@ make
 or:
 
 ```sh
-cc -std=c99 -O2 -Wall -Wextra -pedantic -o newick-info newick-info.c -lm
+cc -std=c99 -O2 -Wall -Wextra -pedantic -o get_newick_info get_newick_info.c -lm
 ```
 
 ## Usage
 
 ```sh
-./newick-info trees.nwk
-./newick-info --taxa trees.nwk
-./newick-info --support trees.nwk
-./newick-info --taxa --support trees.nwk
-./newick-info --tol 1e-7 trees.nwk
+./get_newick_info trees.nwk
+./get_newick_info --taxa trees.nwk
+./get_newick_info --support trees.nwk
+./get_newick_info --tl trees.nwk
+./get_newick_info --taxa --support trees.nwk
+./get_newick_info --tol 1e-7 trees.nwk
 ```
+
+Without an output option, the full summary is printed. `--taxa` (or `-t`)
+prints sorted, unique taxon labels, `--support` prints support values, and
+`--tl` prints total tree length. These options print only values, one per line,
+without headers or added indentation. When combined, values appear in that
+order: taxa, support, then tree length.
 
 Multiple input files are accepted:
 
 ```sh
-./newick-info a.nwk b.nwk c.nwk
+./get_newick_info a.nwk b.nwk c.nwk
 ```
+
+With `--tl`, one value is printed per file, summing branch lengths across all
+trees in that file.
 
 ## Reported fields
 
@@ -114,32 +124,37 @@ Input:
 Command:
 
 ```sh
-./newick-info --taxa --support example.nwk
+./get_newick_info --taxa --support example.nwk
 ```
 
-Expected report is approximately:
+Output:
 
 ```text
-File: example.nwk
-Number of trees: 1
-Number of unique tip labels: 4
-Branch lengths present: true
-Rooted tree: true
-Dichotomous: true
-Comments present (NHX or Enhanced Newick format): false
-Is the tree ultrametric: true
-Tree height: 3
-Tree length, TL: 10
-Taxon labels:
-  A
-  B
-  C
-  D
-Support values:
-  95
-  90
-  100
-Sum of support values: 285
+A
+B
+C
+D
+95
+90
+100
+```
+
+To print only tree length:
+
+```sh
+./get_newick_info --tl example.nwk
+```
+
+```text
+10
+```
+
+## Tests
+
+Run the output regression tests (requires Python 3):
+
+```sh
+make test
 ```
 
 ## Limitations / design notes

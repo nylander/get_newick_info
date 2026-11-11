@@ -13,4 +13,7 @@ $(TARGET): get_newick_info.c
 clean:
 	rm -f $(TARGET)
 
-.PHONY: all clean
+test: $(TARGET)
+	python3 test_get_newick_info.py
+
+.PHONY: all clean test
