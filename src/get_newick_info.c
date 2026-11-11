@@ -626,7 +626,7 @@ static void print_file_report(const char *filename, const FileStats *fs,
         else
             printf("Tree height: NA\n");
 
-        printf("Tree length, TL: %.17g\n", fs->tree_length);
+        printf("Tree length (TL): %.17g\n", fs->tree_length);
         if (fs->have_support_metrics) {
             printf("Mean resampling proportion (MRP): %.17g\n", fs->mrp);
             printf("Mean character support (MCS): %.17g\n", fs->mcs);
