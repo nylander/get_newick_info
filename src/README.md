@@ -150,8 +150,8 @@ Comments present (NHX or Enhanced Newick format): false
 Is the tree ultrametric: true
 Tree height: 3
 Tree length (TL): 8
-Mean resampling proportion (MRP): NA
-Mean character support (MCS): NA
+Mean resampling proportion (MRP): 2.8399999999999999
+Mean character support (MCS): 9.9034875525361254
 Sum of support values: 285
 ```
 
