@@ -82,15 +82,15 @@ recognizes `95` and `100` as support values.
 Non-numeric internal labels are retained as node labels but are not included in
 the support statistics.
 
-**TODO** Apply original implementation where we harvest supported nodes, and divide by (n-3) regardless. This will allow us to get summaries for consensus tree with few support values.
-
-MRP and MCS are calculated when a tree has exactly `n - 3` numeric support
-labels, where `n` is its tip count. Support values whose maximum exceeds 1 are
+MRP and MCS are calculated from all numeric support labels found in a tree,
+using `n - 3` as the denominator regardless of how many support labels are
+present, where `n` is the tip count. Support values whose maximum exceeds 1 are
 treated as percentages and divided by 100. Values are limited to the range
 0–1, and an RP of 1 is reduced to 0.99 before calculation. The summary reports
-`NA` when the required support values are unavailable. For files with multiple
-trees, MRP and MCS are the arithmetic means of the per-tree metrics; if any
-tree lacks sufficient support values, both file-level metrics are `NA`.
+`NA` when no numeric support labels are found or the tree has three or fewer
+tips. For files with multiple trees, MRP and MCS are the arithmetic means of
+the per-tree metrics; if any tree has no usable support metrics, both
+file-level metrics are `NA`.
 
 ### Ultrametricity
 

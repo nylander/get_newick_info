@@ -151,10 +151,32 @@ class OutputTests(unittest.TestCase):
             -math.log(0.01),
         )
 
-    def test_support_metrics_are_na_without_complete_supports(self):
+    def test_support_metrics_use_available_supports(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "partial-supports.nwk"
+            path.write_text("((A,B)0.5,C,D,E);\n")
+            output = self.run_info(path)
+        self.assertAlmostEqual(
+            self.summary_metric(output, "Mean resampling proportion (MRP)"),
+            0.25,
+        )
+        self.assertAlmostEqual(
+            self.summary_metric(output, "Mean character support (MCS)"),
+            -math.log(0.5) / 2,
+        )
+
+    def test_support_metrics_are_na_without_supports(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "unsupported.nwk"
             path.write_text("(A,B,C,D);\n")
+            output = self.run_info(path)
+        self.assertIn("Mean resampling proportion (MRP): NA\n", output)
+        self.assertIn("Mean character support (MCS): NA\n", output)
+
+    def test_support_metrics_are_na_when_tip_count_has_no_denominator(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "small-supported.nwk"
+            path.write_text("((A,B)0.5,C);\n")
             output = self.run_info(path)
         self.assertIn("Mean resampling proportion (MRP): NA\n", output)
         self.assertIn("Mean character support (MCS): NA\n", output)
