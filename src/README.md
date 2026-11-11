@@ -131,6 +131,30 @@ Input:
 ((A:1,B:1)95:2,(C:1,D:1)90:2)100;
 ```
 
+To print general information:
+
+```sh
+./get_newick_info example.nwk
+```
+
+Output:
+
+```text
+File: example.nwk
+Number of trees: 1
+Number of unique tip labels: 4
+Branch lengths present: true
+Rooted tree: true
+Dichotomous: true
+Comments present (NHX or Enhanced Newick format): false
+Is the tree ultrametric: true
+Tree height: 3
+Tree length (TL): 8
+Mean resampling proportion (MRP): NA
+Mean character support (MCS): NA
+Sum of support values: 285
+```
+
 To print taxon or tip labels:
 
 ```sh
@@ -167,7 +191,7 @@ To print only tree length (sum of all branch lengths):
 ```
 
 ```text
-10
+8
 ```
 
 ## Tests
