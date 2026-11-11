@@ -22,15 +22,14 @@ cc -std=c99 -O2 -Wall -Wextra -pedantic -o get_newick_info get_newick_info.c -lm
 ./get_newick_info --taxa trees.nwk
 ./get_newick_info --support trees.nwk
 ./get_newick_info --tl trees.nwk
-./get_newick_info --taxa --support trees.nwk
 ./get_newick_info --tol 1e-7 trees.nwk
 ```
 
 Without an output option, the full summary is printed. `--taxa` (or `-t`)
 prints sorted, unique taxon labels, `--support` prints support values, and
 `--tl` prints the total branch length of each tree. These options print only
-values, one per line, without headers or added indentation. When combined,
-values appear in that order: taxa, support, then tree length.
+values, one per line, without headers or added indentation. These three output
+options are mutually exclusive; use at most one per invocation.
 
 Multiple input files are accepted:
 

@@ -836,6 +836,7 @@ static void usage(const char *prog) {
     puts("  --tol VALUE      ultrametric comparison tolerance (default 1e-8)");
     puts("  --help, -h       show this help");
     puts("");
+    puts("Use at most one of --taxa, --support, and --tl.");
     puts("Numeric internal labels are interpreted as support values.");
 }
 
@@ -883,6 +884,11 @@ int main(int argc, char **argv) {
         } else {
             break;
         }
+    }
+
+    if ((print_taxa ? 1 : 0) + (print_support ? 1 : 0) + (print_tl ? 1 : 0) > 1) {
+        fprintf(stderr, "--taxa, --support, and --tl are mutually exclusive\n");
+        return EXIT_FAILURE;
     }
 
     if (first_file >= argc) {

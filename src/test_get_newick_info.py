@@ -47,14 +47,23 @@ class OutputTests(unittest.TestCase):
                     expected,
                 )
 
-    def test_combined_options(self):
-        self.assertEqual(
-            self.run_info(
-                "--tl", "--support", "--taxa",
-                ROOT / "data" / "brlens_pp.tree",
-            ),
-            TAXA + SUPPORT + "0.48455999999999999\n",
-        )
+    def test_output_options_are_mutually_exclusive(self):
+        input_path = ROOT / "data" / "brlens_pp.tree"
+        for options in (
+            ("--taxa", "--support"),
+            ("--taxa", "--tl"),
+            ("--support", "--tl"),
+            ("-t", "--support"),
+        ):
+            with self.subTest(options=options):
+                result = subprocess.run(
+                    [str(PROGRAM), *options, str(input_path)],
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, "")
+                self.assertIn("mutually exclusive", result.stderr)
 
     def test_tree_length_example(self):
         self.assertEqual(
@@ -68,10 +77,6 @@ class OutputTests(unittest.TestCase):
             self.assertEqual(self.run_info("--tl", path, path), "3\n7\n3\n7\n")
             self.assertEqual(self.run_info("--taxa", path), "A\nB\nC\n")
             self.assertEqual(self.run_info("--support", path), "90\n80\n")
-            self.assertEqual(
-                self.run_info("--tl", "--taxa", "--support", path),
-                "A\nB\nC\n90\n80\n3\n7\n",
-            )
             self.assertIn("Tree length, TL: 10\n", self.run_info(path))
             path.write_text("(A,B);\n")
             self.assertEqual(self.run_info("--tl", path), "0\n")
