@@ -1,13 +1,10 @@
-# README.md
-
-- Last modified: 2026-11-11 15:49:16
-- Sign: nylander
+# Get Newick Info
 
 ## Description
 
 ![img](img/img.jpg)
 
-Program for reading a file in newick format
+Program for reading a file in newick format, and report
 
 ## Report for each input file
 
@@ -26,6 +23,15 @@ Program for reading a file in newick format
 - [X] Sum of all support values: numerical
 - [X] MRP - Mean resampling proportion: numerical
 - [X] MCS - Mean character support: numerical
+
+## TODO
+
+- [ ] Test with multi-tree files: are properties reported meaningful or not on
+  many trees? Or should they be lifted out as separate options?
+- [ ] Test with BEAST-extended files
+- [ ] Test with almost-ultrametric files
+- [ ] Test with rooted/unrooted trees
+- [ ] Make sure reading scientific numbers works
 
 ## See also
 
