@@ -568,31 +568,33 @@ static void print_bool(bool b) {
 
 static void print_file_report(const char *filename, const FileStats *fs,
                               bool print_taxa, bool print_support) {
-    printf("File: %s\n", filename);
-    printf("Number of trees: %zu\n", fs->trees);
-    printf("Number of unique tip labels: %zu\n", fs->tips);
-    printf("Branch lengths present: ");
-    print_bool(fs->branch_lengths > 0);
-    printf("Rooted tree: ");
-    print_bool(fs->rooted);
-    printf("Dichotomous: ");
-    print_bool(fs->dichotomous);
-    printf("Comments present (NHX or Enhanced Newick format): ");
-    print_bool(fs->comments);
+    if (!print_taxa && !print_support) {
+        printf("File: %s\n", filename);
+        printf("Number of trees: %zu\n", fs->trees);
+        printf("Number of unique tip labels: %zu\n", fs->tips);
+        printf("Branch lengths present: ");
+        print_bool(fs->branch_lengths > 0);
+        printf("Rooted tree: ");
+        print_bool(fs->rooted);
+        printf("Dichotomous: ");
+        print_bool(fs->dichotomous);
+        printf("Comments present (NHX or Enhanced Newick format): ");
+        print_bool(fs->comments);
 
-    /*
-     * For a multi-tree file, the summary is meaningful only if every tree
-     * is ultrametric. The caller aggregates the per-tree result below.
-     */
-    printf("Is the tree ultrametric: ");
-    print_bool(fs->ultrametric);
+        /*
+         * For a multi-tree file, the summary is meaningful only if every tree
+         * is ultrametric. The caller aggregates the per-tree result below.
+         */
+        printf("Is the tree ultrametric: ");
+        print_bool(fs->ultrametric);
 
-    if (fs->ultrametric)
-        printf("Tree height: %.17g\n", fs->height);
-    else
-        printf("Tree height: NA\n");
+        if (fs->ultrametric)
+            printf("Tree height: %.17g\n", fs->height);
+        else
+            printf("Tree height: NA\n");
 
-    printf("Tree length, TL: %.17g\n", fs->tree_length);
+        printf("Tree length, TL: %.17g\n", fs->tree_length);
+    }
 
     if (print_taxa) {
         char **copy = xmalloc(fs->ntaxa * sizeof *copy);
@@ -615,8 +617,10 @@ static void print_file_report(const char *filename, const FileStats *fs,
         for (size_t i = 0; i < fs->nsupports; i++)
             printf("  %.17g\n", fs->supports[i]);
     }
-    printf("Sum of support values: %.17g\n", fs->support_sum);
-    putchar('\n');
+    if (!print_taxa && !print_support) {
+        printf("Sum of support values: %.17g\n", fs->support_sum);
+        putchar('\n');
+    }
 }
 
 static char *read_entire_file(const char *filename, size_t *len_out) {
