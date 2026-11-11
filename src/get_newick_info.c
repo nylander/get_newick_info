@@ -81,6 +81,9 @@ typedef struct {
     bool dichotomous;
     bool have_support;
     double support_sum;
+    bool have_support_metrics;
+    double mrp;
+    double mcs;
     char **taxa;
     size_t ntaxa;
     size_t taxa_cap;
@@ -438,6 +441,9 @@ static void reset_per_tree_stats(FileStats *fs) {
     fs->dichotomous = true;
     fs->have_support = false;
     fs->support_sum = 0.0;
+    fs->have_support_metrics = false;
+    fs->mrp = 0.0;
+    fs->mcs = 0.0;
 
     free(fs->taxa);
     fs->taxa = NULL;
@@ -544,6 +550,31 @@ static void analyze_tree(Node *root, FileStats *fs, double tol) {
         fs->ultrametric = ultra && first_set && all_branch_lengths_present(root);
         fs->height = fs->ultrametric ? first_height : NAN;
     }
+
+    if (fs->tips > 3 && fs->nsupports == fs->tips - 3) {
+        double support_max = 0.0;
+        for (size_t i = 0; i < fs->nsupports; i++) {
+            if (fs->supports[i] > support_max)
+                support_max = fs->supports[i];
+        }
+
+        double scale = support_max > 1.0 ? 100.0 : 1.0;
+        double rp_sum = 0.0;
+        double mcs_sum = 0.0;
+        for (size_t i = 0; i < fs->nsupports; i++) {
+            double rp = fs->supports[i] / scale;
+            if (rp < 0.0) rp = 0.0;
+            if (rp > 1.0) rp = 1.0;
+            if (rp == 1.0) rp -= 0.01;
+            rp_sum += rp;
+            mcs_sum -= log1p(-rp);
+        }
+
+        double denominator = (double)(fs->tips - 3);
+        fs->mrp = rp_sum / denominator;
+        fs->mcs = mcs_sum / denominator;
+        fs->have_support_metrics = true;
+    }
 }
 
 static int cmp_str(const void *a, const void *b) {
@@ -596,6 +627,13 @@ static void print_file_report(const char *filename, const FileStats *fs,
             printf("Tree height: NA\n");
 
         printf("Tree length, TL: %.17g\n", fs->tree_length);
+        if (fs->have_support_metrics) {
+            printf("Mean resampling proportion (MRP): %.17g\n", fs->mrp);
+            printf("Mean character support (MCS): %.17g\n", fs->mcs);
+        } else {
+            puts("Mean resampling proportion (MRP): NA");
+            puts("Mean character support (MCS): NA");
+        }
     }
 
     if (print_taxa) {
@@ -687,6 +725,9 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     double total_tree_length = 0.0;
     double total_support_sum = 0.0;
     size_t total_supports = 0;
+    double total_mrp = 0.0;
+    double total_mcs = 0.0;
+    bool all_support_metrics = true;
     bool any_comments = false;
     bool all_dichotomous = true;
     bool all_ultrametric = true;
@@ -750,6 +791,12 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
         total_tree_length += fs.tree_length;
         total_support_sum += fs.support_sum;
         total_supports += fs.nsupports;
+        if (fs.have_support_metrics) {
+            total_mrp += fs.mrp;
+            total_mcs += fs.mcs;
+        } else {
+            all_support_metrics = false;
+        }
         any_comments = any_comments || fs.comments;
         all_dichotomous = all_dichotomous && fs.dichotomous;
         all_ultrametric = all_ultrametric && fs.ultrametric;
@@ -811,6 +858,11 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     report.height = report.ultrametric ? common_height : NAN;
     report.rooted = rooted_value_set ? rooted_value : false;
     report.support_sum = total_support_sum;
+    report.have_support_metrics = fs.trees > 0 && all_support_metrics;
+    if (report.have_support_metrics) {
+        report.mrp = total_mrp / (double)fs.trees;
+        report.mcs = total_mcs / (double)fs.trees;
+    }
     report.ntaxa = all_ntaxa;
     report.taxa = all_taxa;
     report.nsupports = all_nsupports;

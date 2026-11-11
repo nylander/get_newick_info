@@ -1,3 +1,4 @@
+import math
 import subprocess
 import tempfile
 import unittest
@@ -33,6 +34,11 @@ class OutputTests(unittest.TestCase):
         )
         self.assertEqual(result.stderr, "")
         return result.stdout
+
+    def summary_metric(self, output, label):
+        prefix = f"{label}: "
+        return float(next(line[len(prefix):] for line in output.splitlines()
+                          if line.startswith(prefix)))
 
     def test_value_only_options(self):
         for option, expected in (
@@ -112,7 +118,59 @@ class OutputTests(unittest.TestCase):
             "Is the tree ultrametric: false\n"
             "Tree height: NA\n"
             f"Tree length, TL: {TL}"
+            "Mean resampling proportion (MRP): 0.54600000000000004\n"
+            "Mean character support (MCS): 1.4038482366507115\n"
             "Sum of support values: 274\n\n",
+        )
+
+    def test_mrp_and_mcs_from_resampling_proportions(self):
+        output = self.run_info(ROOT / "data" / "brlens_pp.tree")
+        supports = [0.999, 0.99, 0.601, 0.589, 0.477]
+        expected_mrp = sum(supports) / 5
+        expected_mcs = sum(-math.log1p(-support) for support in supports) / 5
+        self.assertAlmostEqual(
+            self.summary_metric(output, "Mean resampling proportion (MRP)"),
+            expected_mrp,
+        )
+        self.assertAlmostEqual(
+            self.summary_metric(output, "Mean character support (MCS)"),
+            expected_mcs,
+        )
+
+    def test_supports_on_zero_to_100_scale(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "supports.nwk"
+            path.write_text("((A,B)100,(C,D)99,E);\n")
+            output = self.run_info(path)
+        self.assertAlmostEqual(
+            self.summary_metric(output, "Mean resampling proportion (MRP)"),
+            0.99,
+        )
+        self.assertAlmostEqual(
+            self.summary_metric(output, "Mean character support (MCS)"),
+            -math.log(0.01),
+        )
+
+    def test_support_metrics_are_na_without_complete_supports(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "unsupported.nwk"
+            path.write_text("(A,B,C,D);\n")
+            output = self.run_info(path)
+        self.assertIn("Mean resampling proportion (MRP): NA\n", output)
+        self.assertIn("Mean character support (MCS): NA\n", output)
+
+    def test_multiple_tree_metrics_are_averaged(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "trees.nwk"
+            path.write_text("((A,B)0.5,C,D);((E,F)1.0,G,H);\n")
+            output = self.run_info(path)
+        self.assertAlmostEqual(
+            self.summary_metric(output, "Mean resampling proportion (MRP)"),
+            0.745,
+        )
+        self.assertAlmostEqual(
+            self.summary_metric(output, "Mean character support (MCS)"),
+            (-math.log(0.5) - math.log(0.01)) / 2,
         )
 
 

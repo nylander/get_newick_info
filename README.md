@@ -24,7 +24,8 @@ Program for reading a file in newick format
 - [X] Print support values (optional, default false): numerical
 - [X] Print TL only (optional, default false): numerical
 - [X] Sum of all support values: numerical
-- [ ] MCS - Mean character support: numerical
+- [X] MRP - Mean resampling proportion: numerical
+- [X] MCS - Mean character support: numerical
 
 ## See also
 

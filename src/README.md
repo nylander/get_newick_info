@@ -51,6 +51,8 @@ The default summary instead reports the sum of tree lengths for each file.
 * Whether all trees are ultrametric
 * Tree height when all trees are ultrametric and agree on height
 * Total tree length (sum of all branch lengths)
+* Mean resampling proportion (MRP)
+* Mean character support (MCS)
 * Optional sorted taxon labels
 * Optional numeric internal-node support values
 * Sum of support values
@@ -80,6 +82,14 @@ recognizes `95` and `100` as support values.
 
 Non-numeric internal labels are retained as node labels but are not included in
 the support statistics.
+
+MRP and MCS are calculated when a tree has exactly `n - 3` numeric support
+labels, where `n` is its tip count. Support values whose maximum exceeds 1 are
+treated as percentages and divided by 100. Values are limited to the range
+0–1, and an RP of 1 is reduced to 0.99 before calculation. The summary reports
+`NA` when the required support values are unavailable. For files with multiple
+trees, MRP and MCS are the arithmetic means of the per-tree metrics; if any
+tree lacks sufficient support values, both file-level metrics are `NA`.
 
 ### Ultrametricity
 
