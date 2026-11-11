@@ -1,6 +1,6 @@
 
 /*
- * newick-info.c
+ * get_newick_info.c
  *
  * C99 program for reporting statistics about Newick trees.
  *
@@ -8,14 +8,14 @@
  *   cc -std=c99 -O2 -Wall -Wextra -pedantic -o newick-info newick-info.c -lm
  *
  * Usage:
- *   newick-info [options] file1.nwk [file2.nwk ...]
+ *   get_newick_info [options] file1.nwk [file2.nwk ...]
  *
  * Options:
- *   --taxa, -t       print sorted taxon labels
- *   --support       print recognized numeric internal-node support values
- *   --tl            print tree length for each tree
- *   --tol VALUE      tolerance for ultrametric comparisons (default 1e-8)
- *   --help, -h       show help
+ *   --taxa, -t   print sorted taxon labels
+ *   --support    print recognized numeric internal-node support values
+ *   --tl         print tree length for each tree
+ *   --tol VALUE  tolerance for ultrametric comparisons (default 1e-8)
+ *   --help, -h   show help
  *
  * Support convention:
  *   A numeric label on an internal node is treated as a support value.
@@ -551,7 +551,7 @@ static void analyze_tree(Node *root, FileStats *fs, double tol) {
         fs->height = fs->ultrametric ? first_height : NAN;
     }
 
-    if (fs->tips > 3 && fs->nsupports == fs->tips - 3) {
+    if (fs->tips > 3 && fs->nsupports == fs->tips - 3) { /* TODO: Remove the condition that fs->tips needs to be exactly n - 3. We wish to read any support value we can find! */
         double support_max = 0.0;
         for (size_t i = 0; i < fs->nsupports; i++) {
             if (fs->supports[i] > support_max)
@@ -565,7 +565,7 @@ static void analyze_tree(Node *root, FileStats *fs, double tol) {
             double rp = fs->supports[i] / scale;
             if (rp < 0.0) rp = 0.0;
             if (rp > 1.0) rp = 1.0;
-            if (rp == 1.0) rp -= 0.01;
+            if (rp == 1.0) rp -= 0.01; /* TODO: consider changing this value, to for example 0.001, and see how sensitive the MCS is */
             rp_sum += rp;
             mcs_sum -= log1p(-rp);
         }
