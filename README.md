@@ -26,12 +26,16 @@ Program for reading a file in newick format, and report
 
 ## TODO
 
+- [ ] Finish a readable README.md
+- [ ] Check [src/README.md](src/README.md) for more on TODO
 - [ ] Test with multi-tree files: are properties reported meaningful or not on
   many trees? Or should they be lifted out as separate options?
 - [ ] Test with BEAST-extended files
 - [ ] Test with almost-ultrametric files
 - [ ] Test with rooted/unrooted trees
 - [ ] Make sure reading scientific numbers works
+- [ ] Change the implementation of needing n-3 support values: use all support values that can be found!
+- [ ] Test on consensus trees with support values
 
 ## See also
 

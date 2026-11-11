@@ -1,28 +1,25 @@
-# get_newick_info
+# get\_newick\_info
 
-A small standalone C99 command-line program for reporting statistics about
-Newick tree files.
+A command-line program for reporting statistics about tree files in [Newick
+format](https://en.wikipedia.org/wiki/Newick_format).
 
-## Build
+## Download and Build
 
 ```sh
+git clone https://github.com/nylander/get_newick_info.git
+cd get_newick_info/src
 make
 ```
 
-or:
+## Usage examples
 
 ```sh
-cc -std=c99 -O2 -Wall -Wextra -pedantic -o get_newick_info get_newick_info.c -lm
-```
-
-## Usage
-
-```sh
-./get_newick_info trees.nwk
-./get_newick_info --taxa trees.nwk
-./get_newick_info --support trees.nwk
-./get_newick_info --tl trees.nwk
-./get_newick_info --tol 1e-7 trees.nwk
+./get_newick_info ../data/brlens_pp.tree
+./get_newick_info --taxa ../data/brlens_pp.tree
+./get_newick_info --support ../data/brlens_pp.tree
+./get_newick_info --tl ../data/brlens_pp.tree
+./get_newick_info --tol 1e-7 ../data/ultrametric.tree
+./get_newick_info --tol 1e-11 ../data/ultrametric.tree
 ```
 
 Without an output option, the full summary is printed. `--taxa` (or `-t`)
@@ -34,11 +31,11 @@ options are mutually exclusive; use at most one per invocation.
 Multiple input files are accepted:
 
 ```sh
-./get_newick_info a.nwk b.nwk c.nwk
+./get_newick_info ../data/*.tree
 ```
 
 With `--tl`, one value is printed per tree, in input order for each file.
-The default summary instead reports the sum of tree lengths for each file.
+The default summary instead reports the sum of tree lengths for each file. **TODO:** change to average if multi-tree file?
 
 ## Reported fields
 
@@ -61,6 +58,8 @@ The default summary instead reports the sum of tree lengths for each file.
 
 ### Rootedness
 
+**TODO**: Check and try examples of "rooted" trees. Compare with Ape in R.
+
 Plain Newick does not universally encode rootedness. This program therefore uses:
 
 1. `[&R]` => rooted
@@ -82,6 +81,8 @@ recognizes `95` and `100` as support values.
 
 Non-numeric internal labels are retained as node labels but are not included in
 the support statistics.
+
+**TODO** Apply original implementation where we harvest supported nodes, and divide by (n-3) regardless. This will allow us to get summaries for consensus tree with few support values.
 
 MRP and MCS are calculated when a tree has exactly `n - 3` numeric support
 labels, where `n` is its tip count. Support values whose maximum exceeds 1 are
@@ -122,7 +123,7 @@ and BEAST/Enhanced-Newick-style comments such as:
 [&height=1.2]
 ```
 
-## Example
+## Examples
 
 Input:
 
@@ -130,10 +131,10 @@ Input:
 ((A:1,B:1)95:2,(C:1,D:1)90:2)100;
 ```
 
-Command:
+To print taxon or tip labels:
 
 ```sh
-./get_newick_info --taxa --support example.nwk
+./get_newick_info --taxa example.nwk
 ```
 
 Output:
@@ -143,12 +144,23 @@ A
 B
 C
 D
+```
+
+To print support values:
+
+```sh
+./get_newick_info --support example.nwk
+```
+
+Output:
+
+```text
 95
 90
 100
 ```
 
-To print only tree length:
+To print only tree length (sum of all branch lengths):
 
 ```sh
 ./get_newick_info --tl example.nwk
@@ -171,3 +183,11 @@ make test
 For very deeply nested trees, the current implementation uses recursion while
 constructing the tree. Typical phylogenetic trees are fine, but pathological
 nesting can exhaust the C call stack.
+
+## License
+
+MIT License
+
+## Download
+
+<https://github.com/nylander/get_newick_info>
