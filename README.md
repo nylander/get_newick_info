@@ -34,7 +34,7 @@ Program for reading a file in newick format, and report
 - [ ] Test with almost-ultrametric files
 - [ ] Test with rooted/unrooted trees
 - [ ] Make sure reading scientific numbers works
-- [ ] Change the implementation of needing n-3 support values: use all support values that can be found!
+- [X] Change the implementation of needing n-3 support values: use all support values that can be found!
 - [ ] Test on consensus trees with support values
 
 ## See also

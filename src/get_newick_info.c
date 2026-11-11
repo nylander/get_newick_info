@@ -551,7 +551,7 @@ static void analyze_tree(Node *root, FileStats *fs, double tol) {
         fs->height = fs->ultrametric ? first_height : NAN;
     }
 
-    if (fs->tips > 3 && fs->nsupports == fs->tips - 3) { /* TODO: Remove the condition that fs->tips needs to be exactly n - 3. We wish to read any support value we can find! */
+    if (fs->tips > 3 && fs->nsupports > 0) {
         double support_max = 0.0;
         for (size_t i = 0; i < fs->nsupports; i++) {
             if (fs->supports[i] > support_max)
