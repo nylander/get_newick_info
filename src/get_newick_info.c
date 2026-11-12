@@ -570,6 +570,17 @@ static void analyze_tree(Node *root, FileStats *fs, double tol) {
             cs_sum -= log1p(-rp);
         }
 
+        /*
+         * Add calculation of standard deviation of rp and cs here
+         * Final assignment to fs->srp and fs->scs.
+         * For example with rp:
+         * We have sum of scaled rp (rp_sum), and rp_N (fs->nsupports),
+         * so we have to calculate the artimetic mean of scaled rp (mean_scaled_rp = rp_sum/fs->nsupports) and then
+         * for all rp, square root the difference between the scaled rp and the mean pow(rp - mean_scaled_rp, 2);
+         * then calculate the variance = (sum of all pow(rp - mean_scaled_rp, 2)) / fs->nsupports
+         * and finally the sd: sqrt(variance);
+        */
+
         double denominator = (double)(fs->tips - 3);
         fs->mrp = rp_sum / denominator;
         fs->mcs = cs_sum / denominator;
