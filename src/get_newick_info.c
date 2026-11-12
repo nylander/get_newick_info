@@ -33,10 +33,12 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
 
 #include <ctype.h>
 #include <errno.h>
 #include <float.h>
+#include <limits.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -625,7 +627,8 @@ static void print_bool(bool b) {
 
 static void print_file_report(const char *filename, const FileStats *fs,
                               bool print_taxa, bool print_support, bool print_tl,
-                              bool print_header, const double *tree_lengths) {
+                              bool print_header, bool print_fullpath, const double *tree_lengths) {
+
     if (!print_taxa && !print_support && !print_tl) {
 
         if (print_header) {
@@ -636,7 +639,7 @@ static void print_file_report(const char *filename, const FileStats *fs,
         printf("%zu\t", fs->tips);
         print_bool(fs->branch_lengths > 0);
         putchar('\t');
-        print_bool(fs->have_support_metrics);
+        print_bool(fs->have_support);
         putchar('\t');
         print_bool(fs->rooted);
         putchar('\t');
@@ -664,12 +667,24 @@ static void print_file_report(const char *filename, const FileStats *fs,
             printf("%.17g\t", fs->srp);
             printf("%.17g\t", fs->mcs);
             printf("%.17g\t", fs->scs);
+            printf("%.17g\t", fs->support_sum);
         } else {
-            printf("NA\tNA\tNA\tNA\t");
+            printf("NA\tNA\tNA\tNA\tNA\t");
         }
-        printf("%.17g\t", fs->support_sum);
-        printf("%s", filename);
-        putchar('\n');
+
+        if (print_fullpath) {
+            char *resolved = realpath(filename, NULL);
+            if (!resolved) {
+                fprintf(stderr, "%s: realpath failed: %s\n",
+                        filename, strerror(errno));
+                exit(EXIT_FAILURE);
+            }
+            printf("%s\n", resolved);
+            free(resolved);
+        } else {
+            const char *base = strrchr(filename, '/');
+            printf("%s\n", base ? base + 1 : filename);
+        }
     }
 
     if (print_taxa) {
@@ -745,7 +760,7 @@ static void free_stats(FileStats *fs) {
 }
 
 static bool parse_file(const char *filename, bool print_taxa, bool print_support,
-                       bool print_tl, bool print_header, double tol) {
+                       bool print_tl, bool print_header, bool print_fullpath, double tol) {
     size_t len;
     char *text = read_entire_file(filename, &len);
     if (!text) return false;
@@ -898,6 +913,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     report.ultrametric = all_ultrametric && first_height_set && heights_agree;
     report.height = report.ultrametric ? common_height : NAN;
     report.rooted = rooted_value_set ? rooted_value : false;
+    report.have_support = total_supports > 0;
     report.support_sum = total_support_sum;
     report.have_support_metrics = fs.trees > 0 && all_support_metrics;
     if (report.have_support_metrics) {
@@ -912,7 +928,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     report.supports = all_supports;
 
     print_file_report(filename, &report, print_taxa, print_support, print_tl,
-                      print_header, tree_lengths);
+                      print_header, print_fullpath, tree_lengths);
 
     free(text);
     free(tree_lengths);
@@ -930,6 +946,7 @@ static void usage(const char *prog) {
     puts("  --tl             print tree length for each tree");
     puts("  --tol VALUE      ultrametric comparison tolerance (default 1e-8)");
     puts("  -n, --noverbose  do not print header in output");
+    puts("  -p, --fullpath   print realpath to input file");
     puts("  -h, --help       show this help");
     puts("");
     puts("Use at most one of --taxa, --support, and --tl.");
@@ -941,6 +958,7 @@ int main(int argc, char **argv) {
     bool print_support = false;
     bool print_tl = false;
     bool print_header = true;
+    bool print_fullpath = false;
     double tol = 1e-8;
 
     int first_file = 1;
@@ -977,6 +995,9 @@ int main(int argc, char **argv) {
         } else if (strcmp(arg, "--noverbose") == 0 || strcmp(arg, "-n") == 0) {
             print_header = false;
             first_file++;
+        } else if (strcmp(arg, "--fullpath") == 0 || strcmp(arg, "-p") == 0) {
+            print_fullpath = true;
+            first_file++;
         } else if (strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0) {
             usage(argv[0]);
             return EXIT_SUCCESS;
@@ -1001,7 +1022,7 @@ int main(int argc, char **argv) {
 
     int failures = 0;
     for (int i = first_file; i < argc; i++) {
-        if (!parse_file(argv[i], print_taxa, print_support, print_tl, print_header, tol))
+        if (!parse_file(argv[i], print_taxa, print_support, print_tl, print_header, print_fullpath, tol))
             failures++;
     }
 
