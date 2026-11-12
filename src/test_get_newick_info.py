@@ -136,6 +136,22 @@ class OutputTests(unittest.TestCase):
             self.summary_metric(output, "Mean character support (MCS)"),
             expected_mcs,
         )
+        cs = [-math.log1p(-support) for support in supports]
+        rp_mean = sum(supports) / len(supports)
+        cs_mean = sum(cs) / len(cs)
+
+        self.assertAlmostEqual(
+            self.summary_metric(
+                output, "Standard deviation of resampling proportion (s_RP)"
+            ),
+            math.sqrt(sum((x - rp_mean) ** 2 for x in supports) / len(supports)),
+        )
+        self.assertAlmostEqual(
+            self.summary_metric(
+                output, "Standard deviation of character support (s_CS)"
+            ),
+            math.sqrt(sum((x - cs_mean) ** 2 for x in cs) / len(cs)),
+        )
 
     def test_supports_on_zero_to_100_scale(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -84,6 +84,8 @@ typedef struct {
     bool have_support_metrics;
     double mrp;
     double mcs;
+    double srp;
+    double scs;
     char **taxa;
     size_t ntaxa;
     size_t taxa_cap;
@@ -444,6 +446,8 @@ static void reset_per_tree_stats(FileStats *fs) {
     fs->have_support_metrics = false;
     fs->mrp = 0.0;
     fs->mcs = 0.0;
+    fs->srp = 0.0;
+    fs->scs = 0.0;
 
     free(fs->taxa);
     fs->taxa = NULL;
@@ -561,29 +565,39 @@ static void analyze_tree(Node *root, FileStats *fs, double tol) {
         double scale = support_max > 1.0 ? 100.0 : 1.0;
         double rp_sum = 0.0;
         double cs_sum = 0.0;
+        double rp_mean = 0.0;
+        double cs_mean = 0.0;
+        double rp_m2 = 0.0;
+        double cs_m2 = 0.0;
+
         for (size_t i = 0; i < fs->nsupports; i++) {
             double rp = fs->supports[i] / scale;
+
             if (rp < 0.0) rp = 0.0;
             if (rp > 1.0) rp = 1.0;
             if (rp == 1.0) rp -= 0.01; /* TODO: consider changing this value, to for example 0.001, and see how sensitive the MCS is */
+
+            double cs = -log1p(-rp);
             rp_sum += rp;
-            cs_sum -= log1p(-rp);
+            cs_sum += cs;
+
+            double count = (double)(i + 1);
+            double rp_delta = rp - rp_mean;
+            double cs_delta = cs - cs_mean;
+
+            rp_mean += rp_delta / count;
+            cs_mean += cs_delta / count;
+
+            rp_m2 += rp_delta * (rp - rp_mean);
+            cs_m2 += cs_delta * (cs - cs_mean);
         }
 
-        /*
-         * Add calculation of standard deviation of rp and cs here
-         * Final assignment to fs->srp and fs->scs.
-         * For example with rp:
-         * We have sum of scaled rp (rp_sum), and rp_N (fs->nsupports),
-         * so we have to calculate the artimetic mean of scaled rp (mean_scaled_rp = rp_sum/fs->nsupports) and then
-         * for all rp, square root the difference between the scaled rp and the mean pow(rp - mean_scaled_rp, 2);
-         * then calculate the variance = (sum of all pow(rp - mean_scaled_rp, 2)) / fs->nsupports
-         * and finally the sd: sqrt(variance);
-        */
-
         double denominator = (double)(fs->tips - 3);
+
         fs->mrp = rp_sum / denominator;
         fs->mcs = cs_sum / denominator;
+        fs->srp = sqrt(rp_m2 / (double)fs->nsupports);
+        fs->scs = sqrt(cs_m2 / (double)fs->nsupports);
         fs->have_support_metrics = true;
     }
 }
@@ -638,12 +652,17 @@ static void print_file_report(const char *filename, const FileStats *fs,
             printf("Tree height: NA\n");
 
         printf("Tree length (TL): %.17g\n", fs->tree_length);
+
         if (fs->have_support_metrics) {
             printf("Mean resampling proportion (MRP): %.17g\n", fs->mrp);
+            printf("Standard deviation of resampling proportion (s_RP): %.17g\n", fs->srp);
             printf("Mean character support (MCS): %.17g\n", fs->mcs);
+            printf("Standard deviation of character support (s_CS): %.17g\n", fs->scs);
         } else {
             puts("Mean resampling proportion (MRP): NA");
+            puts("Standard deviation of resampling proportion (s_RP): NA");
             puts("Mean character support (MCS): NA");
+            puts("Standard deviation of character support (s_CS): NA");
         }
     }
 
@@ -738,6 +757,8 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     size_t total_supports = 0;
     double total_mrp = 0.0;
     double total_mcs = 0.0;
+    //double total_srp = 0.0;
+    //double total_scs = 0.0;
     bool all_support_metrics = true;
     bool any_comments = false;
     bool all_dichotomous = true;
@@ -873,6 +894,8 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     if (report.have_support_metrics) {
         report.mrp = total_mrp / (double)fs.trees;
         report.mcs = total_mcs / (double)fs.trees;
+        //report.srp = total_srp / (double)fs.trees;
+        //report.scs = total_scs / (double)fs.trees;
     }
     report.ntaxa = all_ntaxa;
     report.taxa = all_taxa;
