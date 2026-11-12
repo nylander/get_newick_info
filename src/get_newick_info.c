@@ -923,12 +923,12 @@ static void usage(const char *prog) {
     printf("Usage: %s [options] file1.nwk [file2.nwk ...]\n", prog);
     puts("");
     puts("Options:");
-    puts("  --taxa, -t       print sorted taxon labels");
+    puts("  -t,--taxa        print sorted taxon labels");
     puts("  --support        print numeric internal-node support values");
     puts("  --tl             print tree length for each tree");
     puts("  --tol VALUE      ultrametric comparison tolerance (default 1e-8)");
-    puts("  --noverbose, -n  do not print header in output");
-    puts("  --help, -h       show this help");
+    puts("  -n, --noverbose  do not print header in output");
+    puts("  -h, --help       show this help");
     puts("");
     puts("Use at most one of --taxa, --support, and --tl.");
     puts("Numeric internal labels are interpreted as support values.");
