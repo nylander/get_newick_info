@@ -757,8 +757,8 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     size_t total_supports = 0;
     double total_mrp = 0.0;
     double total_mcs = 0.0;
-    //double total_srp = 0.0;
-    //double total_scs = 0.0;
+    double total_srp = 0.0;
+    double total_scs = 0.0;
     bool all_support_metrics = true;
     bool any_comments = false;
     bool all_dichotomous = true;
@@ -826,6 +826,8 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
         if (fs.have_support_metrics) {
             total_mrp += fs.mrp;
             total_mcs += fs.mcs;
+            total_srp += fs.srp;
+            total_scs += fs.scs;
         } else {
             all_support_metrics = false;
         }
@@ -894,8 +896,8 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     if (report.have_support_metrics) {
         report.mrp = total_mrp / (double)fs.trees;
         report.mcs = total_mcs / (double)fs.trees;
-        //report.srp = total_srp / (double)fs.trees;
-        //report.scs = total_scs / (double)fs.trees;
+        report.srp = total_srp / (double)fs.trees;
+        report.scs = total_scs / (double)fs.trees;
     }
     report.ntaxa = all_ntaxa;
     report.taxa = all_taxa;

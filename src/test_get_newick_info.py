@@ -119,7 +119,9 @@ class OutputTests(unittest.TestCase):
             "Tree height: NA\n"
             f"Tree length (TL): {TL}"
             "Mean resampling proportion (MRP): 0.54600000000000004\n"
+            "Standard deviation of resampling proportion (s_RP): 0.25726251184344756\n"
             "Mean character support (MCS): 1.4038482366507115\n"
+            "Standard deviation of character support (s_CS): 1.6167469061723576\n"
             "Sum of support values: 274\n\n",
         )
 
@@ -180,6 +182,14 @@ class OutputTests(unittest.TestCase):
             self.summary_metric(output, "Mean character support (MCS)"),
             -math.log(0.5) / 2,
         )
+        self.assertEqual(
+            self.summary_metric(output, "Standard deviation of resampling proportion (s_RP)"),
+            0.0,
+        )
+        self.assertEqual(
+            self.summary_metric(output, "Standard deviation of character support (s_CS)"),
+            0.0,
+        )
 
     def test_support_metrics_are_na_without_supports(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -188,6 +198,8 @@ class OutputTests(unittest.TestCase):
             output = self.run_info(path)
         self.assertIn("Mean resampling proportion (MRP): NA\n", output)
         self.assertIn("Mean character support (MCS): NA\n", output)
+        self.assertIn("Standard deviation of resampling proportion (s_RP): NA\n", output)
+        self.assertIn("Standard deviation of character support (s_CS): NA\n", output)
 
     def test_support_metrics_are_na_when_tip_count_has_no_denominator(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -196,6 +208,8 @@ class OutputTests(unittest.TestCase):
             output = self.run_info(path)
         self.assertIn("Mean resampling proportion (MRP): NA\n", output)
         self.assertIn("Mean character support (MCS): NA\n", output)
+        self.assertIn("Standard deviation of resampling proportion (s_RP): NA\n", output)
+        self.assertIn("Standard deviation of character support (s_CS): NA\n", output)
 
     def test_multiple_tree_metrics_are_averaged(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -210,6 +224,51 @@ class OutputTests(unittest.TestCase):
             self.summary_metric(output, "Mean character support (MCS)"),
             (-math.log(0.5) - math.log(0.01)) / 2,
         )
+
+    def test_multiple_tree_standard_deviations_are_averaged(self):
+        trees = (
+            ("((A,B)0.2,(C,D)0.8,E);", [0.2, 0.8]),
+            ("((A,B)20,(C,D)40,(E,F)60,G);", [0.2, 0.4, 0.6]),
+            ("((A,B)1.0,C,D);", [0.99]),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "trees.nwk"
+            path.write_text("".join(tree for tree, _ in trees))
+            output = self.run_info(path)
+
+        for label, transform in (
+            ("Standard deviation of resampling proportion (s_RP)", lambda rp: rp),
+            ("Standard deviation of character support (s_CS)", lambda rp: -math.log1p(-rp)),
+        ):
+            deviations = []
+            for _, supports in trees:
+                values = [transform(rp) for rp in supports]
+                mean = sum(values) / len(values)
+                deviations.append(
+                    math.sqrt(sum((value - mean) ** 2 for value in values) / len(values))
+                )
+            with self.subTest(label=label):
+                self.assertAlmostEqual(
+                    self.summary_metric(output, label),
+                    sum(deviations) / len(deviations),
+                )
+
+    def test_multiple_tree_standard_deviations_are_na_if_any_tree_is_unsupported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "trees.nwk"
+            for trees in (
+                "((A,B)0.2,(C,D)0.8,E);(A,B,C,D);",
+                "(A,B,C,D);((A,B)0.2,(C,D)0.8,E);",
+            ):
+                with self.subTest(trees=trees):
+                    path.write_text(trees)
+                    output = self.run_info(path)
+                    self.assertIn(
+                        "Standard deviation of resampling proportion (s_RP): NA\n", output
+                    )
+                    self.assertIn(
+                        "Standard deviation of character support (s_CS): NA\n", output
+                    )
 
 
 if __name__ == "__main__":
