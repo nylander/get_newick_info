@@ -629,12 +629,14 @@ static void print_file_report(const char *filename, const FileStats *fs,
     if (!print_taxa && !print_support && !print_tl) {
 
         if (print_header) {
-            printf("Ntrees\tNtips\tblens\troot\tdicho\tcomm\tultra\theight\tTL\tMRP\tsRP\tMCS\tsCS\tsumSup\tfile\n");
+            printf("Ntrees\tNtips\tblens\tsupport\troot\tdicho\tcomm\tultra\theight\tTL\tMRP\tsRP\tMCS\tsCS\tsumSup\tfile\n");
         }
 
         printf("%zu\t", fs->trees);
         printf("%zu\t", fs->tips);
         print_bool(fs->branch_lengths > 0);
+        putchar('\t');
+        print_bool(fs->have_support_metrics);
         putchar('\t');
         print_bool(fs->rooted);
         putchar('\t');
