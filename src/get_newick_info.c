@@ -560,19 +560,19 @@ static void analyze_tree(Node *root, FileStats *fs, double tol) {
 
         double scale = support_max > 1.0 ? 100.0 : 1.0;
         double rp_sum = 0.0;
-        double mcs_sum = 0.0;
+        double cs_sum = 0.0;
         for (size_t i = 0; i < fs->nsupports; i++) {
             double rp = fs->supports[i] / scale;
             if (rp < 0.0) rp = 0.0;
             if (rp > 1.0) rp = 1.0;
             if (rp == 1.0) rp -= 0.01; /* TODO: consider changing this value, to for example 0.001, and see how sensitive the MCS is */
             rp_sum += rp;
-            mcs_sum -= log1p(-rp);
+            cs_sum -= log1p(-rp);
         }
 
         double denominator = (double)(fs->tips - 3);
         fs->mrp = rp_sum / denominator;
-        fs->mcs = mcs_sum / denominator;
+        fs->mcs = cs_sum / denominator;
         fs->have_support_metrics = true;
     }
 }
