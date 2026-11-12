@@ -22,9 +22,9 @@ Program for reading a file in newick format, and report
 - [X] Print TL only (optional, default false): numerical
 - [X] Sum of all support values: numerical
 - [X] MRP - Mean resampling proportion: numerical
-- [ ] Standard deviation of MRP ($s_{MRP}$): numerical
+- [ ] Standard deviation of RP ($s_{RP}$): numerical
 - [X] MCS - Mean character support: numerical
-- [ ] Standard deviation of MCS ($s_{MCS}$)🚡: numerical
+- [ ] Standard deviation of CS ($s_{CS}$)🚡: numerical
 
 ## TODO
 
