@@ -760,7 +760,7 @@ static void free_stats(FileStats *fs) {
 }
 
 static bool parse_file(const char *filename, bool print_taxa, bool print_support,
-                       bool print_tl, bool print_header, bool print_fullpath, double tol) {
+                       bool print_tl, bool print_header, bool print_fullpath, bool print_brlens, double tol) {
     size_t len;
     char *text = read_entire_file(filename, &len);
     if (!text) return false;
@@ -942,7 +942,8 @@ static void usage(const char *prog) {
     puts("");
     puts("Options:");
     puts("  -t,--taxa        print sorted taxon labels");
-    puts("  --support        print numeric internal-node support values");
+    puts("  -s, --support    print numeric internal-node support values");
+    puts("  -b, --brlens     print branch lengths");
     puts("  --tl             print tree length for each tree");
     puts("  --tol VALUE      ultrametric comparison tolerance (default 1e-8)");
     puts("  -n, --noverbose  do not print header in output");
@@ -959,6 +960,7 @@ int main(int argc, char **argv) {
     bool print_tl = false;
     bool print_header = true;
     bool print_fullpath = false;
+    bool print_brlens = false;
     double tol = 1e-8;
 
     int first_file = 1;
@@ -970,8 +972,12 @@ int main(int argc, char **argv) {
             print_taxa = true;
             print_header = false;
             first_file++;
-        } else if (strcmp(arg, "--support") == 0) {
+        } else if (strcmp(arg, "--support") == 0 || strcmp(arg, "-s") == 0) {
             print_support = true;
+            print_header = false;
+            first_file++;
+        } else if (strcmp(arg, "--brlens") == 0 ||  strcmp(arg, "-b") == 0) {
+            print_brlens = true;
             print_header = false;
             first_file++;
         } else if (strcmp(arg, "--tl") == 0) {
@@ -1010,8 +1016,8 @@ int main(int argc, char **argv) {
         }
     }
 
-    if ((print_taxa ? 1 : 0) + (print_support ? 1 : 0) + (print_tl ? 1 : 0) > 1) {
-        fprintf(stderr, "--taxa, --support, and --tl are mutually exclusive\n");
+    if ((print_brlens ? 1 : 0) + (print_taxa ? 1 : 0) + (print_support ? 1 : 0) + (print_tl ? 1 : 0) > 1) {
+        fprintf(stderr, "--taxa, --support, --brlens, and --tl are mutually exclusive\n");
         return EXIT_FAILURE;
     }
 
@@ -1022,7 +1028,7 @@ int main(int argc, char **argv) {
 
     int failures = 0;
     for (int i = first_file; i < argc; i++) {
-        if (!parse_file(argv[i], print_taxa, print_support, print_tl, print_header, print_fullpath, tol))
+        if (!parse_file(argv[i], print_taxa, print_support, print_tl, print_header, print_fullpath, print_brlens, tol))
             failures++;
     }
 
