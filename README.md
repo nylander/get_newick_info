@@ -22,10 +22,13 @@ Program for reading a file in newick format, and report
 - [X] Print TL only (optional, default false): numerical
 - [X] Sum of all support values: numerical
 - [X] MRP - Mean resampling proportion: numerical
+- [ ] Standard deviation of MRP ($s_{MRP}$): numerical
 - [X] MCS - Mean character support: numerical
+- [ ] Standard deviation of MCS ($s_{MCS}$)🚡: numerical
 
 ## TODO
 
+- [ ] Add calculations and reporting of standard deviation of MRP and MCS
 - [ ] Finish a readable README.md
 - [ ] Check [src/README.md](src/README.md) for more on TODO
 - [ ] Test with multi-tree files: are properties reported meaningful or not on
