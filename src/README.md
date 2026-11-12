@@ -49,7 +49,9 @@ The default summary instead reports the sum of tree lengths for each file. **TOD
 * Tree height when all trees are ultrametric and agree on height
 * Total tree length (sum of all branch lengths)
 * Mean resampling proportion (MRP)
+* Standard deviation of resampling proportion (s_RP)
 * Mean character support (MCS)
+* Standard deviation of character support (s_CS)
 * Optional sorted taxon labels
 * Optional numeric internal-node support values
 * Sum of support values
@@ -91,6 +93,14 @@ treated as percentages and divided by 100. Values are limited to the range
 tips. For files with multiple trees, MRP and MCS are the arithmetic means of
 the per-tree metrics; if any tree has no usable support metrics, both
 file-level metrics are `NA`.
+
+The per-tree standard deviations `s_RP` and `s_CS` are population standard
+deviations over the available support labels, dividing by the number of labels
+rather than `n - 3`. They use the same normalized RP values as MRP and the
+transformed values `CS = -log(1 - RP)` as MCS. For multiple trees, the summary
+reports the arithmetic mean of the per-tree standard deviations, not the
+standard deviation of pooled observations or of the per-tree means. Both
+standard deviations are `NA` if any tree has no usable support metrics.
 
 ### Ultrametricity
 
@@ -151,7 +161,9 @@ Is the tree ultrametric: true
 Tree height: 3
 Tree length (TL): 8
 Mean resampling proportion (MRP): 2.8399999999999999
+Standard deviation of resampling proportion (s_RP): 0.036817870057290855
 Mean character support (MCS): 9.9034875525361254
+Standard deviation of character support (s_CS): 0.9645172378147886
 Sum of support values: 285
 ```
 
