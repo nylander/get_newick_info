@@ -974,6 +974,7 @@ int main(int argc, char **argv) {
             first_file += 2;
         } else if (strcmp(arg, "--noverbose") == 0 || strcmp(arg, "-n") == 0) {
             print_header = false;
+            first_file++;
         } else if (strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0) {
             usage(argv[0]);
             return EXIT_SUCCESS;
