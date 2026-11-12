@@ -620,50 +620,54 @@ static size_t count_unique_labels(char **labels, size_t n) {
 }
 
 static void print_bool(bool b) {
-    puts(b ? "true" : "false");
+    printf(b ? "true" : "false");
 }
 
 static void print_file_report(const char *filename, const FileStats *fs,
                               bool print_taxa, bool print_support, bool print_tl,
-                              const double *tree_lengths) {
+                              bool print_header, const double *tree_lengths) {
     if (!print_taxa && !print_support && !print_tl) {
-        printf("File: %s\n", filename);
-        printf("Number of trees: %zu\n", fs->trees);
-        printf("Number of unique tip labels: %zu\n", fs->tips);
-        printf("Branch lengths present: ");
+
+        if (print_header) {
+            printf("Ntrees\tNtips\tblens\troot\tdicho\tcomm\tultra\theight\tTL\tMRP\tsRP\tMCS\tsCS\tsumSup\tfile\n");
+        }
+
+        printf("%zu\t", fs->trees);
+        printf("%zu\t", fs->tips);
         print_bool(fs->branch_lengths > 0);
-        printf("Rooted tree: ");
+        putchar('\t');
         print_bool(fs->rooted);
-        printf("Dichotomous: ");
+        putchar('\t');
         print_bool(fs->dichotomous);
-        printf("Comments present (NHX or Enhanced Newick format): ");
+        putchar('\t');
         print_bool(fs->comments);
+        putchar('\t');
 
         /*
          * For a multi-tree file, the summary is meaningful only if every tree
          * is ultrametric. The caller aggregates the per-tree result below.
          */
-        printf("Is the tree ultrametric: ");
         print_bool(fs->ultrametric);
+        putchar('\t');
 
         if (fs->ultrametric)
-            printf("Tree height: %.17g\n", fs->height);
+            printf("%.17g\t", fs->height);
         else
-            printf("Tree height: NA\n");
+            printf("NA\t");
 
-        printf("Tree length (TL): %.17g\n", fs->tree_length);
+        printf("%.17g\t", fs->tree_length);
 
         if (fs->have_support_metrics) {
-            printf("Mean resampling proportion (MRP): %.17g\n", fs->mrp);
-            printf("Standard deviation of resampling proportion (s_RP): %.17g\n", fs->srp);
-            printf("Mean character support (MCS): %.17g\n", fs->mcs);
-            printf("Standard deviation of character support (s_CS): %.17g\n", fs->scs);
+            printf("%.17g\t", fs->mrp);
+            printf("%.17g\t", fs->srp);
+            printf("%.17g\t", fs->mcs);
+            printf("%.17g\t", fs->scs);
         } else {
-            puts("Mean resampling proportion (MRP): NA");
-            puts("Standard deviation of resampling proportion (s_RP): NA");
-            puts("Mean character support (MCS): NA");
-            puts("Standard deviation of character support (s_CS): NA");
+            printf("NA\tNA\tNA\tNA\t");
         }
+        printf("%.17g\t", fs->support_sum);
+        printf("%s", filename);
+        putchar('\n');
     }
 
     if (print_taxa) {
@@ -688,10 +692,11 @@ static void print_file_report(const char *filename, const FileStats *fs,
             printf("%.17g\n", tree_lengths[i]);
     }
 
-    if (!print_taxa && !print_support && !print_tl) {
-        printf("Sum of support values: %.17g\n", fs->support_sum);
-        putchar('\n');
-    }
+    //if (!print_taxa && !print_support && !print_tl) {
+    //    printf("Sum of support values: %.17g\n", fs->support_sum);
+    //    putchar('\n'); //this is the line ending
+    //}
+    //putchar('\n'); //this is the line ending
 }
 
 static char *read_entire_file(const char *filename, size_t *len_out) {
@@ -738,7 +743,7 @@ static void free_stats(FileStats *fs) {
 }
 
 static bool parse_file(const char *filename, bool print_taxa, bool print_support,
-                       bool print_tl, double tol) {
+                       bool print_tl, bool print_header, double tol) {
     size_t len;
     char *text = read_entire_file(filename, &len);
     if (!text) return false;
@@ -905,7 +910,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     report.supports = all_supports;
 
     print_file_report(filename, &report, print_taxa, print_support, print_tl,
-                      tree_lengths);
+                      print_header, tree_lengths);
 
     free(text);
     free(tree_lengths);
@@ -922,6 +927,7 @@ static void usage(const char *prog) {
     puts("  --support        print numeric internal-node support values");
     puts("  --tl             print tree length for each tree");
     puts("  --tol VALUE      ultrametric comparison tolerance (default 1e-8)");
+    puts("  --noverbose, -n  do not print header in output");
     puts("  --help, -h       show this help");
     puts("");
     puts("Use at most one of --taxa, --support, and --tl.");
@@ -932,6 +938,7 @@ int main(int argc, char **argv) {
     bool print_taxa = false;
     bool print_support = false;
     bool print_tl = false;
+    bool print_header = true;
     double tol = 1e-8;
 
     int first_file = 1;
@@ -941,12 +948,15 @@ int main(int argc, char **argv) {
 
         if (strcmp(arg, "--taxa") == 0 || strcmp(arg, "-t") == 0) {
             print_taxa = true;
+            print_header = false;
             first_file++;
         } else if (strcmp(arg, "--support") == 0) {
             print_support = true;
+            print_header = false;
             first_file++;
         } else if (strcmp(arg, "--tl") == 0) {
             print_tl = true;
+            print_header = false;
             first_file++;
         } else if (strcmp(arg, "--tol") == 0) {
             if (first_file + 1 >= argc) {
@@ -962,6 +972,8 @@ int main(int argc, char **argv) {
                 return EXIT_FAILURE;
             }
             first_file += 2;
+        } else if (strcmp(arg, "--noverbose") == 0 || strcmp(arg, "-n") == 0) {
+            print_header = false;
         } else if (strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0) {
             usage(argv[0]);
             return EXIT_SUCCESS;
@@ -986,7 +998,7 @@ int main(int argc, char **argv) {
 
     int failures = 0;
     for (int i = first_file; i < argc; i++) {
-        if (!parse_file(argv[i], print_taxa, print_support, print_tl, tol))
+        if (!parse_file(argv[i], print_taxa, print_support, print_tl, print_header, tol))
             failures++;
     }
 
