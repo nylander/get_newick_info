@@ -188,18 +188,18 @@ class OutputTests(unittest.TestCase):
             "1\t8\ttrue\ttrue\tfalse\tfalse\tfalse\tfalse\tNA\t"
             "0.48529400210000007\t288\t0.57400000000000007\t"
             "0.24368832553078942\t1.4543634882709771\t1.5904965740184576\t"
-            "3\tmulti.trees\n"
+            "3\tbrlens_bp.trees\n"
             "2\t8\ttrue\ttrue\tfalse\tfalse\tfalse\tfalse\tNA\t"
             "0.4637315622\t298\t0.59599999999999997\t"
             "0.2218648237102944\t1.1016457698187057\t0.6829615010376946\t"
-            "3\tmulti.trees\n"
+            "3\tbrlens_bp.trees\n"
             "3\t8\ttrue\ttrue\tfalse\tfalse\tfalse\tfalse\tNA\t"
             "0.47744841850000003\t308\t0.6140000000000001\t"
             "0.24630062931304095\t1.5586228729976344\t1.5546836427319075\t"
-            "3\tmulti.trees\n"
+            "3\tbrlens_bp.trees\n"
         )
         self.assertEqual(
-            self.run_info(ROOT / "data" / "multi.trees"),
+            self.run_info(ROOT / "data" / "brlens_bp.trees"),
             HEADER + expected,
         )
 
