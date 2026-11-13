@@ -72,7 +72,8 @@ typedef struct {
     size_t tips;
     size_t internal_nodes;
     size_t branch_count;
-    size_t branch_lengths;
+    size_t nbranch_lengths;
+    double *branch_lengths;
     double tree_length;
     double height;
     bool ultrametric;
@@ -373,9 +374,10 @@ static Node *parse_internal(Parser *p, FileStats *fs) {
         }
         n->length = length;
         n->has_length = true;
-        fs->branch_lengths++;
+        //fs->nbranch_lengths++;
         fs->branch_count++;
         fs->tree_length += length;
+        fs->branch_lengths[fs->nbranch_lengths++] = length; // Here we need to add to a position. Does this work?
     }
 
     consume_comments(p, fs);
@@ -412,7 +414,7 @@ static Node *parse_leaf(Parser *p, FileStats *fs) {
         }
         n->length = length;
         n->has_length = true;
-        fs->branch_lengths++;
+        fs->nbranch_lengths++;
         fs->branch_count++;
         fs->tree_length += length;
     }
@@ -438,7 +440,7 @@ static void reset_per_tree_stats(FileStats *fs) {
     fs->tips = 0;
     fs->internal_nodes = 0;
     fs->branch_count = 0;
-    fs->branch_lengths = 0;
+    fs->nbranch_lengths = 0;
     fs->tree_length = 0.0;
     fs->height = 0.0;
     fs->ultrametric = true;
@@ -458,6 +460,11 @@ static void reset_per_tree_stats(FileStats *fs) {
     free(fs->supports);
     fs->supports = NULL;
     fs->nsupports = fs->support_cap = 0;
+
+    // make this work
+    free(fs->branch_lengths);
+    fs->branch_lengths = NULL;
+
 }
 
 static bool all_branch_lengths_present(const Node *n) {
@@ -544,7 +551,7 @@ static void analyze_tree(Node *root, FileStats *fs, double tol) {
     bool all_lengths = all_branch_lengths_present(root);
     (void)all_lengths;
 
-    if (fs->branch_lengths == 0) {
+    if (fs->nbranch_lengths == 0) {
         fs->ultrametric = false;
         fs->height = NAN;
     } else {
@@ -627,9 +634,10 @@ static void print_bool(bool b) {
 
 static void print_file_report(const char *filename, const FileStats *fs,
                               bool print_taxa, bool print_support, bool print_tl,
-                              bool print_header, bool print_fullpath, const double *tree_lengths) {
+                              bool print_header, bool print_fullpath, bool print_brlens,
+                              const double *tree_lengths) {
 
-    if (!print_taxa && !print_support && !print_tl) {
+    if (!print_taxa && !print_support && !print_tl && !print_brlens) {
 
         if (print_header) {
             printf("Ntrees\tNtips\tblens\tsupport\troot\tdicho\tcomm\tultra\theight\tTL\tMRP\tsRP\tMCS\tsCS\tsumSup\tfile\n");
@@ -637,7 +645,7 @@ static void print_file_report(const char *filename, const FileStats *fs,
 
         printf("%zu\t", fs->trees);
         printf("%zu\t", fs->tips);
-        print_bool(fs->branch_lengths > 0);
+        print_bool(fs->nbranch_lengths > 0);
         putchar('\t');
         print_bool(fs->have_support);
         putchar('\t');
@@ -704,16 +712,19 @@ static void print_file_report(const char *filename, const FileStats *fs,
         for (size_t i = 0; i < fs->nsupports; i++)
             printf("%.17g\n", fs->supports[i]);
     }
+
+// make this work fs->nbranch_lengths is neither array nor pointer nor vector
+// we need to collect the branch lengths just as we did with the fs->supports
+    if (print_brlens) {
+        for (size_t i = 0; i < fs->nbranch_lengths; i++)
+            printf("%.17g\n", fs->branch_lengths[i]);
+            //puts("dummy brlen");
+    }
+
     if (print_tl) {
         for (size_t i = 0; i < fs->trees; i++)
             printf("%.17g\n", tree_lengths[i]);
     }
-
-    //if (!print_taxa && !print_support && !print_tl) {
-    //    printf("Sum of support values: %.17g\n", fs->support_sum);
-    //    putchar('\n'); //this is the line ending
-    //}
-    //putchar('\n'); //this is the line ending
 }
 
 static char *read_entire_file(const char *filename, size_t *len_out) {
@@ -800,11 +811,12 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
 
     while (1) {
         skip_ws(&p);
+
         if (p.pos >= p.len) break;
 
         reset_per_tree_stats(&fs);
-
         Node *root = parse_subtree(&p, &fs);
+
         if (!root) {
             fprintf(stderr, "%s: parse error %s\n", filename, p.error_msg);
             node_free(root);
@@ -841,7 +853,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
             tree_lengths[fs.trees] = fs.tree_length;
         }
         fs.trees++;
-        total_branch_lengths += fs.branch_lengths;
+        total_branch_lengths += fs.nbranch_lengths;
         total_tree_length += fs.tree_length;
         total_support_sum += fs.support_sum;
         total_supports += fs.nsupports;
@@ -899,6 +911,19 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
             }
         }
 
+        // Collect all brlens
+        if (print_brlens) {
+            for (size_t i = 0; i < fs.nsupports; i++) {
+                if (all_nsupports == all_support_cap) {
+                    all_support_cap = all_support_cap ? all_support_cap * 2 : 64;
+                    all_supports = xrealloc(all_supports,
+                                             all_support_cap * sizeof *all_supports);
+                }
+                all_supports[all_nsupports++] = fs.supports[i];
+            }
+        }
+        // 
+
         node_free(root);
     }
 
@@ -906,7 +931,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     FileStats report = {0};
     report.trees = fs.trees;
     report.tips = count_unique_labels(all_taxa, all_ntaxa);
-    report.branch_lengths = total_branch_lengths;
+    report.nbranch_lengths = total_branch_lengths;
     report.tree_length = total_tree_length;
     report.comments = any_comments;
     report.dichotomous = all_dichotomous;
@@ -928,7 +953,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     report.supports = all_supports;
 
     print_file_report(filename, &report, print_taxa, print_support, print_tl,
-                      print_header, print_fullpath, tree_lengths);
+                      print_header, print_fullpath, print_brlens, tree_lengths);
 
     free(text);
     free(tree_lengths);
