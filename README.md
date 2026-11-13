@@ -1,7 +1,9 @@
 # get\_newick\_info
 
-![A command-line program for reporting statistics about tree files in [Newick
-format](https://en.wikipedia.org/wiki/Newick_format).](img/img.jpg)
+A command-line program for reporting statistics about tree files in [Newick
+format
+
+![](https://en.wikipedia.org/wiki/Newick_format).](img/img.jpg)
 
 ---
 
@@ -17,12 +19,12 @@ format](https://en.wikipedia.org/wiki/Newick_format).](img/img.jpg)
 - 8 ultra    Is tree ultrametric
 - 9 height   Tree height (when all trees are ultrametric)
 - 10 TL      Total tree length (sum of all branch lengths)
-- 11 MRP     Mean resampling proportion
-- 12 sRP     Standard deviation of resampling proportion
-- 13 MCS     Mean character support
-- 14 sCS     Standard deviation of character support
-- 15 sumSup  Sum of support values
-- 16 file    Input file name
+- 11 sumSup  Sum of support values
+- 12 MRP     Mean resampling proportion
+- 13 sRP     Standard deviation of resampling proportion
+- 14 MCS     Mean character support
+- 15 sCS     Standard deviation of character support
+- 17 file    Input file name
 
 ## Usage and Options
 
