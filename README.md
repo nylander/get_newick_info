@@ -11,23 +11,23 @@ format](https://en.wikipedia.org/wiki/Newick_format).
 
 | Column | Label       | Property |
 | ------ | ----------- | -------- |
-| 1.     | **#**       |  Position of this tree in the input file |
-| 2.     | **Ntips**   |  Number of tips in this tree |
-| 3.     | **blens**   |  Are branch lengths present? |
-| 4.     | **support** |  Do branches have support values? |
-| 5.     | **root**    |  Is the tree rooted? |
-| 6.     | **dicho**   |  Is the tree dichotomous? |
-| 7.     | **comm**    |  Are there comments present? |
-| 8.     | **ultra**   |  Is the tree ultrametric? |
-| 9.     | **height**  |  Tree height (when ultrametric) |
-| 10.    | **TL**      |  Total length of this tree's branches |
-| 11.    | **sumSup**  |  Sum of support values |
-| 12.    | **MRP**     |  Mean resampling proportion |
-| 13.    | **sRP**     |  Standard deviation of resampling proportion |
-| 14.    | **MCS**     |  Mean character support |
-| 15.    | **sCS**     |  Standard deviation of character support |
-| 16.    | **Ntrees**  |  Total number of trees in the input file |
-| 17.    | **file**    |  Input file name |
+| 1.     | **#**       | Position of this tree in the input file |
+| 2.     | **Ntips**   | Number of tips in this tree |
+| 3.     | **blens**   | Are branch lengths present? |
+| 4.     | **support** | Do branches have support values? |
+| 5.     | **root**    | Is the tree rooted? |
+| 6.     | **dicho**   | Is the tree dichotomous? |
+| 7.     | **comm**    | Are there comments present? |
+| 8.     | **ultra**   | Is the tree ultrametric? |
+| 9.     | **height**  | Tree height (when ultrametric) |
+| 10.    | **TL**      | Total length of this tree's branches |
+| 11.    | **sumSup**  | Sum of support values |
+| 12.    | **MRP**     | Mean resampling proportion |
+| 13.    | **sRP**     | Standard deviation of resampling proportion |
+| 14.    | **MCS**     | Mean character support |
+| 15.    | **sCS**     | Standard deviation of character support |
+| 16.    | **Ntrees**  | Total number of trees in the input file |
+| 17.    | **file**    | Input file name |
 
 ## Usage and Options
 
@@ -56,6 +56,10 @@ git clone https://github.com/nylander/get_newick_info.git
 cd get_newick_info/src
 make
 ```
+
+You can then put the executable (`get_newick_info`) in your PATH.
+Alternatively, you can install in your local `~/bin` by `INSTALL_PATH=$HOME
+make install` or system wide by, for example, use `sudo make install`.
 
 ## Usage examples
 
@@ -90,7 +94,6 @@ second-to-last column. Example:
 ```sh
 ./get_newick_info -n ../data/*.trees | column -t | less -S
 ```
-
 
 ## Important conventions
 
@@ -142,8 +145,8 @@ transformed values `CS = -log(1 - RP)` as MCS. Both standard deviations are
 
 A tree is considered ultrametric when:
 
-* every root-to-tip path has a branch length on every edge, and
-* all root-to-tip distances agree within the specified relative/absolute
+- every root-to-tip path has a branch length on every edge, and
+- all root-to-tip distances agree within the specified relative/absolute
   tolerance.
 
 The default tolerance is `1e-8`.
@@ -151,8 +154,6 @@ The default tolerance is `1e-8`.
 Ultrametricity and height are reported separately for each tree.
 
 ### Comments
-
-(See also [TODO](#todo) below)
 
 Any bracketed comment is detected. This includes ordinary Newick comments,
 NHX annotations such as:
