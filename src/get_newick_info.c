@@ -690,7 +690,11 @@ static void print_file_report(const char *filename, const FileStats *fs,
         else
             printf("NA\t");
 
-        printf("%.17g\t", fs->tree_length);
+        if (fs->nbranch_lengths > 0) {
+            printf("%.17g\t", fs->tree_length);
+        } else {
+            printf("NA\t");
+        }
 
         if (fs->have_support_metrics) {
             printf("%.17g\t", fs->support_sum);
@@ -735,12 +739,9 @@ static void print_file_report(const char *filename, const FileStats *fs,
             printf("%.17g\n", fs->supports[i]);
     }
 
-// make this work fs->nbranch_lengths is neither array nor pointer nor vector
-// we need to collect the branch lengths just as we did with the fs->supports
     if (print_brlens) {
         for (size_t i = 0; i < fs->nbranch_lengths; i++)
             printf("%.17g\n", fs->branch_lengths[i]);
-            //puts("dummy brlen");
     }
 
     if (print_tl) {
