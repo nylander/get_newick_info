@@ -9,22 +9,22 @@ format
 
 ## Reported fields
 
-- 1 Ntrees   Number of trees
-- 2 Ntips    Number of unique tip labels across all trees
-- 3 blens    Are branch lengths are present?
-- 4 support  Do branches have support values?
-- 5 root     Is tree rooted?
-- 6 dicho    Is tree dichotomous?
-- 7 comm     Are there comments present?
-- 8 ultra    Is tree ultrametric
-- 9 height   Tree height (when all trees are ultrametric)
-- 10 TL      Total tree length (sum of all branch lengths)
-- 11 sumSup  Sum of support values
-- 12 MRP     Mean resampling proportion
-- 13 sRP     Standard deviation of resampling proportion
-- 14 MCS     Mean character support
-- 15 sCS     Standard deviation of character support
-- 17 file    Input file name
+1. **Ntrees**   Number of trees
+2. **Ntips**    Number of unique tip labels across all trees
+3. **blens**    Are branch lengths are present?
+4. **support**  Do branches have support values?
+5. **root**     Is tree rooted?
+6. **dicho**    Is tree dichotomous?
+7. **comm**     Are there comments present?
+8. **ultra**    Is tree ultrametric
+9. **height**   Tree height (when all trees are ultrametric)
+10. **TL**      Total tree length (sum of all branch lengths)
+11. **sumSup**  Sum of support values
+12. **MRP**     Mean resampling proportion
+13. **sRP**     Standard deviation of resampling proportion
+14. **MCS**     Mean character support
+15. **sCS**     Standard deviation of character support
+16. **file**    Input file name
 
 ## Usage and Options
 
