@@ -7,6 +7,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 PROGRAM = ROOT / "src" / "get_newick_info"
+EXAMPLE = ROOT / "data" / "brlens_bp.tree"
+HEADER = (
+    "Ntrees\tNtips\tblens\tsupport\troot\tdicho\tcomm\tultra\t"
+    "height\tTL\tsumSup\tMRP\tsRP\tMCS\tsCS\tfile\n"
+)
+EXAMPLE_ROW = (
+    "1\t8\ttrue\ttrue\tfalse\tfalse\tfalse\tfalse\tNA\t"
+    "0.48529400210000007\t288\t0.57400000000000007\t"
+    "0.24368832553078942\t1.4543634882709771\t1.5904965740184576\t"
+    "brlens_bp.tree\n"
+)
 TAXA = (
     "Andricus_curvator\n"
     "Andricus_kollari\n"
@@ -17,11 +28,17 @@ TAXA = (
     "Plagiotrochus_quercusilicis\n"
     "Synergus_gallaepomiformis\n"
 )
-SUPPORT = (
+PP_SUPPORT = (
     "0.999\n1\n0.60099999999999998\n"
     "0.58899999999999997\n0.47699999999999998\n"
 )
-TL = "0.48612273009999996\n"
+BRANCH_LENGTHS = (
+    "0.0078347836000000008\n0.028452826099999998\n"
+    "0.025623778400000002\n0.058971544100000002\n0.0069431998\n"
+    "0.0644708066\n0.0036897742999999999\n0.1440215645\n"
+    "0.024767003999999999\n0.017712700099999999\n"
+    "0.0086275608999999993\n0.062971422999999999\n0.031207036699999999\n"
+)
 
 
 class OutputTests(unittest.TestCase):
@@ -35,23 +52,34 @@ class OutputTests(unittest.TestCase):
         self.assertEqual(result.stderr, "")
         return result.stdout
 
+    def summary(self, output):
+        lines = output.splitlines()
+        self.assertEqual(len(lines), 2)
+        self.assertEqual(lines[0] + "\n", HEADER)
+        columns = lines[0].split("\t")
+        values = lines[1].split("\t")
+        self.assertEqual(len(values), len(columns))
+        return dict(zip(columns, values))
+
     def summary_metric(self, output, label):
-        prefix = f"{label}: "
-        return float(next(line[len(prefix):] for line in output.splitlines()
-                          if line.startswith(prefix)))
+        return float(self.summary(output)[label])
 
     def test_value_only_options(self):
         for option, expected in (
             ("--taxa", TAXA),
             ("-t", TAXA),
-            ("--support", SUPPORT),
-            ("--tl", "0.48455999999999999\n"),
+            ("--support", "60\n23\n52\n53\n100\n"),
+            ("-s", "60\n23\n52\n53\n100\n"),
+            ("--brlens", BRANCH_LENGTHS),
+            ("-b", BRANCH_LENGTHS),
+            ("--tl", "0.48529400210000007\n"),
         ):
             with self.subTest(option=option):
-                self.assertEqual(
-                    self.run_info(option, ROOT / "data" / "brlens_pp.tree"),
-                    expected,
-                )
+                self.assertEqual(self.run_info(option, EXAMPLE), expected)
+        self.assertEqual(
+            self.run_info("--support", ROOT / "data" / "brlens_pp.tree"),
+            PP_SUPPORT,
+        )
 
     def test_output_options_are_mutually_exclusive(self):
         input_path = ROOT / "data" / "brlens_pp.tree"
@@ -60,6 +88,9 @@ class OutputTests(unittest.TestCase):
             ("--taxa", "--tl"),
             ("--support", "--tl"),
             ("-t", "--support"),
+            ("--brlens", "--taxa"),
+            ("--brlens", "--support"),
+            ("--brlens", "--tl"),
         ):
             with self.subTest(options=options):
                 result = subprocess.run(
@@ -73,7 +104,8 @@ class OutputTests(unittest.TestCase):
 
     def test_tree_length_example(self):
         self.assertEqual(
-            self.run_info("--tl", ROOT / "data" / "brlens.tree"), TL
+            self.run_info("--tl", ROOT / "data" / "brlens.tree"),
+            "0.48455999999999999\n",
         )
 
     def test_multi_tree_and_multi_file_output(self):
@@ -83,7 +115,7 @@ class OutputTests(unittest.TestCase):
             self.assertEqual(self.run_info("--tl", path, path), "3\n7\n3\n7\n")
             self.assertEqual(self.run_info("--taxa", path), "A\nB\nC\n")
             self.assertEqual(self.run_info("--support", path), "90\n80\n")
-            self.assertIn("Tree length (TL): 10\n", self.run_info(path))
+            self.assertEqual(self.summary(self.run_info(path))["TL"], "10")
             path.write_text("(A,B);\n")
             self.assertEqual(self.run_info("--tl", path), "0\n")
             self.assertEqual(self.run_info("--support", path), "")
@@ -138,26 +170,37 @@ class OutputTests(unittest.TestCase):
                     self.assertIn(error, result.stderr)
 
     def test_default_summary(self):
-        path = ROOT / "data" / "brlens.tree"
-        output = self.run_info(path)
+        self.assertEqual(self.run_info(EXAMPLE), HEADER + EXAMPLE_ROW)
+
+    def test_summary_output_options(self):
+        for option in ("-n", "--noverbose"):
+            with self.subTest(option=option):
+                self.assertEqual(self.run_info(option, EXAMPLE), EXAMPLE_ROW)
+        fullpath_row = EXAMPLE_ROW.replace("brlens_bp.tree\n", f"{EXAMPLE.resolve()}\n")
+        for option in ("-p", "--fullpath"):
+            with self.subTest(option=option):
+                self.assertEqual(self.run_info(option, EXAMPLE), HEADER + fullpath_row)
+        self.assertEqual(self.run_info("-n", "-p", EXAMPLE), fullpath_row)
+
+    def test_multiple_file_summaries(self):
         self.assertEqual(
-            output,
-            f"File: {path}\n"
-            "Number of trees: 1\n"
-            "Number of unique tip labels: 8\n"
-            "Branch lengths present: true\n"
-            "Rooted tree: false\n"
-            "Dichotomous: false\n"
-            "Comments present (NHX or Enhanced Newick format): false\n"
-            "Is the tree ultrametric: false\n"
-            "Tree height: NA\n"
-            f"Tree length (TL): {TL}"
-            "Mean resampling proportion (MRP): 0.54600000000000004\n"
-            "Standard deviation of resampling proportion (s_RP): 0.25726251184344756\n"
-            "Mean character support (MCS): 1.4038482366507115\n"
-            "Standard deviation of character support (s_CS): 1.6167469061723576\n"
-            "Sum of support values: 274\n\n",
+            self.run_info(EXAMPLE, EXAMPLE),
+            (HEADER + EXAMPLE_ROW) * 2,
         )
+        self.assertEqual(self.run_info("-n", EXAMPLE, EXAMPLE), EXAMPLE_ROW * 2)
+
+    def test_summary_numeric_options(self):
+        output = self.summary(self.run_info("--lp", "0.1", EXAMPLE))
+        self.assertAlmostEqual(float(output["MRP"]), (0.6 + 0.23 + 0.52 + 0.53 + 0.9) / 5)
+        self.assertAlmostEqual(
+            float(output["MCS"]),
+            sum(-math.log1p(-rp) for rp in (0.6, 0.23, 0.52, 0.53, 0.9)) / 5,
+        )
+        path = ROOT / "data" / "ultrametric.tree"
+        loose = self.summary(self.run_info("--tol", "1e-7", path))
+        strict = self.summary(self.run_info("--tol", "1e-11", path))
+        self.assertEqual((loose["ultra"], loose["height"]), ("true", "1"))
+        self.assertEqual((strict["ultra"], strict["height"]), ("false", "NA"))
 
     def test_mrp_and_mcs_from_resampling_proportions(self):
         output = self.run_info(ROOT / "data" / "brlens_pp.tree")
@@ -165,11 +208,11 @@ class OutputTests(unittest.TestCase):
         expected_mrp = sum(supports) / 5
         expected_mcs = sum(-math.log1p(-support) for support in supports) / 5
         self.assertAlmostEqual(
-            self.summary_metric(output, "Mean resampling proportion (MRP)"),
+            self.summary_metric(output, "MRP"),
             expected_mrp,
         )
         self.assertAlmostEqual(
-            self.summary_metric(output, "Mean character support (MCS)"),
+            self.summary_metric(output, "MCS"),
             expected_mcs,
         )
         cs = [-math.log1p(-support) for support in supports]
@@ -178,13 +221,13 @@ class OutputTests(unittest.TestCase):
 
         self.assertAlmostEqual(
             self.summary_metric(
-                output, "Standard deviation of resampling proportion (s_RP)"
+                output, "sRP"
             ),
             math.sqrt(sum((x - rp_mean) ** 2 for x in supports) / len(supports)),
         )
         self.assertAlmostEqual(
             self.summary_metric(
-                output, "Standard deviation of character support (s_CS)"
+                output, "sCS"
             ),
             math.sqrt(sum((x - cs_mean) ** 2 for x in cs) / len(cs)),
         )
@@ -195,11 +238,11 @@ class OutputTests(unittest.TestCase):
             path.write_text("((A,B)100,(C,D)99,E);\n")
             output = self.run_info(path)
         self.assertAlmostEqual(
-            self.summary_metric(output, "Mean resampling proportion (MRP)"),
+            self.summary_metric(output, "MRP"),
             0.99,
         )
         self.assertAlmostEqual(
-            self.summary_metric(output, "Mean character support (MCS)"),
+            self.summary_metric(output, "MCS"),
             -math.log(0.01),
         )
 
@@ -209,19 +252,19 @@ class OutputTests(unittest.TestCase):
             path.write_text("((A,B)0.5,C,D,E);\n")
             output = self.run_info(path)
         self.assertAlmostEqual(
-            self.summary_metric(output, "Mean resampling proportion (MRP)"),
+            self.summary_metric(output, "MRP"),
             0.25,
         )
         self.assertAlmostEqual(
-            self.summary_metric(output, "Mean character support (MCS)"),
+            self.summary_metric(output, "MCS"),
             -math.log(0.5) / 2,
         )
         self.assertEqual(
-            self.summary_metric(output, "Standard deviation of resampling proportion (s_RP)"),
+            self.summary_metric(output, "sRP"),
             0.0,
         )
         self.assertEqual(
-            self.summary_metric(output, "Standard deviation of character support (s_CS)"),
+            self.summary_metric(output, "sCS"),
             0.0,
         )
 
@@ -230,20 +273,18 @@ class OutputTests(unittest.TestCase):
             path = Path(directory) / "unsupported.nwk"
             path.write_text("(A,B,C,D);\n")
             output = self.run_info(path)
-        self.assertIn("Mean resampling proportion (MRP): NA\n", output)
-        self.assertIn("Mean character support (MCS): NA\n", output)
-        self.assertIn("Standard deviation of resampling proportion (s_RP): NA\n", output)
-        self.assertIn("Standard deviation of character support (s_CS): NA\n", output)
+        report = self.summary(output)
+        for column in ("MRP", "sRP", "MCS", "sCS"):
+            self.assertEqual(report[column], "NA")
 
     def test_support_metrics_are_na_when_tip_count_has_no_denominator(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "small-supported.nwk"
             path.write_text("((A,B)0.5,C);\n")
             output = self.run_info(path)
-        self.assertIn("Mean resampling proportion (MRP): NA\n", output)
-        self.assertIn("Mean character support (MCS): NA\n", output)
-        self.assertIn("Standard deviation of resampling proportion (s_RP): NA\n", output)
-        self.assertIn("Standard deviation of character support (s_CS): NA\n", output)
+        report = self.summary(output)
+        for column in ("MRP", "sRP", "MCS", "sCS"):
+            self.assertEqual(report[column], "NA")
 
     def test_multiple_tree_metrics_are_averaged(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -251,11 +292,11 @@ class OutputTests(unittest.TestCase):
             path.write_text("((A,B)0.5,C,D);((E,F)1.0,G,H);\n")
             output = self.run_info(path)
         self.assertAlmostEqual(
-            self.summary_metric(output, "Mean resampling proportion (MRP)"),
+            self.summary_metric(output, "MRP"),
             0.745,
         )
         self.assertAlmostEqual(
-            self.summary_metric(output, "Mean character support (MCS)"),
+            self.summary_metric(output, "MCS"),
             (-math.log(0.5) - math.log(0.01)) / 2,
         )
 
@@ -271,8 +312,8 @@ class OutputTests(unittest.TestCase):
             output = self.run_info(path)
 
         for label, transform in (
-            ("Standard deviation of resampling proportion (s_RP)", lambda rp: rp),
-            ("Standard deviation of character support (s_CS)", lambda rp: -math.log1p(-rp)),
+            ("sRP", lambda rp: rp),
+            ("sCS", lambda rp: -math.log1p(-rp)),
         ):
             deviations = []
             for _, supports in trees:
@@ -297,12 +338,9 @@ class OutputTests(unittest.TestCase):
                 with self.subTest(trees=trees):
                     path.write_text(trees)
                     output = self.run_info(path)
-                    self.assertIn(
-                        "Standard deviation of resampling proportion (s_RP): NA\n", output
-                    )
-                    self.assertIn(
-                        "Standard deviation of character support (s_CS): NA\n", output
-                    )
+                    report = self.summary(output)
+                    for column in ("MRP", "sRP", "MCS", "sCS"):
+                        self.assertEqual(report[column], "NA")
 
 
 if __name__ == "__main__":
