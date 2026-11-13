@@ -76,17 +76,17 @@ of each tree. These options print only values, one per line, without headers or
 added indentation. These three output options are mutually exclusive; use at
 most one per invocation.
 
-Multiple input files are accepted:
+Multiple input files are accepted. Example:
 
 ```sh
-./get_newick_info ../data/*.tree
+./get_newick_info -n ../data/*.tree | column -t | less -S
 ```
 
 Multi-tree files are accepted (note however, some of the statistics needs to be
-tested for multi-tree files. See [TODO](#todo) below):
+tested for multi-tree files. See [TODO](#todo) below). Example:
 
 ```sh
-./get_newick_info ../data/*.tree
+./get_newick_info -n ../data/*.trees | column -t | less -S
 ```
 
 
