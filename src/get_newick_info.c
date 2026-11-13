@@ -1,35 +1,7 @@
 
 /*
  * get_newick_info.c
- *
- * C99 program for reporting statistics about Newick trees.
- *
- * Build:
- *   cc -std=c99 -O2 -Wall -Wextra -pedantic -o newick-info newick-info.c -lm
- *
- * Usage:
- *   get_newick_info [options] file1.nwk [file2.nwk ...]
- *
- * Options:
- *   --taxa, -t   print sorted taxon labels
- *   --support    print recognized numeric internal-node support values
- *   --tl         print tree length for each tree
- *   --tol VALUE  tolerance for ultrametric comparisons (default 1e-8)
- *   --help, -h   show help
- *
- * Support convention:
- *   A numeric label on an internal node is treated as a support value.
- *   Non-numeric internal labels are not treated as support.
- *
- * Rootedness convention:
- *   Newick does not, by itself, universally encode rootedness. This program
- *   reports rooted=true when an explicit BEAST-style [&R] root annotation is
- *   present, rooted=false when [&U] is present, otherwise it uses the common
- *   structural heuristic that a root with exactly two children is rooted.
- *
- * Comments:
- *   Any bracketed Newick comment is counted. This includes NHX and
- *   BEAST/Enhanced-Newick annotations.
+ * https://github.com/nylander/get_newick_info
  */
 
 #define _POSIX_C_SOURCE 200809L
@@ -1017,15 +989,15 @@ static void usage(const char *prog) {
     puts("");
     puts("Options:");
     puts("  -t,--taxa        print sorted taxon labels");
-    puts("  -s, --support    print numeric internal-node support values");
+    puts("  -s, --support    print internal-node support values");
     puts("  -b, --brlens     print branch lengths");
-    puts("  --tl             print tree length for each tree");
+    puts("  --tl             print tree length");
     puts("  --tol VALUE      ultrametric comparison tolerance (default 1e-8)");
     puts("  -n, --noverbose  do not print header in output");
     puts("  -p, --fullpath   print realpath to input file");
     puts("  -h, --help       show this help");
     puts("");
-    puts("Use at most one of --taxa, --support, and --tl.");
+    puts("Use at most one of --taxa, --support, --brlens and --tl.");
     puts("Numeric internal labels are interpreted as support values.");
 }
 
