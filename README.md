@@ -206,17 +206,4 @@ MIT [License](LICENSE)
 - [ ] Test with non-dichotomous trees
 - [ ] Manually check MRP and MCS calculations on multi-tree files
 - [ ] Add reference to MRP and MCS
-- [ ] Update tests
-
-## See also
-
-- <https://biopython.org/wiki/Phylo>
-- <https://gist.github.com/Ad115/34dfc6560b64779a40c1a929f560511b>
-- <https://gist.github.com/joemarct/5263462>
-- <https://github.com/ANGSD/newick>
-- <https://github.com/rcedgar/newick>
-- <https://github.com/tjunier/newick_utils>
-- <https://github.com/xflouris/newick-tools>
-- <https://jeetsukumaran.github.io/DendroPy/>
-- <https://jeetsukumaran.github.io/DendroPy/programs/sumtrees.html>
 
