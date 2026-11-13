@@ -103,6 +103,40 @@ class OutputTests(unittest.TestCase):
             self.assertEqual(result.stdout, "")
             self.assertIn("expected ';'", result.stderr)
 
+    def test_branch_lengths_across_trees_and_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "trees.nwk"
+            for option in ("--brlens", "-b"):
+                with self.subTest(option=option):
+                    path.write_text("((A:1,B:2)90:3,C:4):5;(D:6,E:7);")
+                    expected = "1\n2\n3\n4\n5\n6\n7\n"
+                    self.assertEqual(self.run_info(option, path, path), expected * 2)
+                    path.write_text("(A:1,B:2);" * 17)
+                    self.assertEqual(self.run_info(option, path), "1\n2\n" * 17)
+                    path.write_text("(A,B);")
+                    self.assertEqual(self.run_info(option, path), "")
+                    path.write_text("")
+                    self.assertEqual(self.run_info(option, path), "")
+
+    def test_branch_lengths_do_not_print_partial_results_on_parse_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "invalid.nwk"
+            for trees, error in (
+                ("(A:1,B:2);(C:3,D:4)", "expected ';'"),
+                ("(A:1,B:2);(C:3,)", "expected a taxon label"),
+                ("(C:3,)", "expected a taxon label"),
+            ):
+                with self.subTest(trees=trees):
+                    path.write_text(trees)
+                    result = subprocess.run(
+                        [str(PROGRAM), "--brlens", str(path)],
+                        capture_output=True,
+                        text=True,
+                    )
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(result.stdout, "")
+                    self.assertIn(error, result.stderr)
+
     def test_default_summary(self):
         path = ROOT / "data" / "brlens.tree"
         output = self.run_info(path)
