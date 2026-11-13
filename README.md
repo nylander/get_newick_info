@@ -34,12 +34,12 @@ format](https://en.wikipedia.org/wiki/Newick_format).](img/img.jpg)
       -b, --brlens     print branch lengths
       --tl             print tree length
       --tol VALUE      ultrametric comparison tolerance (default 1e-8)
+      --lp VALUE       correction value for calculating MRP and MCS (default 0.01)
       -n, --noverbose  do not print header in output
       -p, --fullpath   print realpath to input file
       -h, --help       show this help
 
     Use at most one of --taxa, --support, --brlens and --tl.
-    Numeric internal labels are interpreted as support values.
 
 ## Download and Build
 
@@ -119,11 +119,13 @@ MRP and MCS are calculated from all numeric support labels found in a tree,
 using `n - 3` as the denominator regardless of how many support labels are
 present, where `n` is the tip count. Support values whose maximum exceeds 1 are
 treated as percentages and divided by 100. Values are limited to the range
-0–1, and an RP of 1 is reduced to 0.99 before calculation. The summary reports
-`NA` when no numeric support labels are found or the tree has three or fewer
-tips. For files with multiple trees, MRP and MCS are the arithmetic means of
-the per-tree metrics; if any tree has no usable support metrics, both
-file-level metrics are `NA`.
+0--1, and an RP of 1 is reduced to $1-lp$ before calculation (to avoid division by 0).
+The value of `lp` can be set by the `--lp` option and default is 0.01.
+
+The summary reports `NA` when no numeric support labels are found or the tree
+has three or fewer tips. For files with multiple trees, MRP and MCS are the
+arithmetic means of the per-tree metrics; if any tree has no usable support
+metrics, both file-level metrics are `NA`.
 
 The per-tree standard deviations `s_RP` and `s_CS` are population standard
 deviations over the available support labels, dividing by the number of labels
@@ -201,6 +203,7 @@ MIT [License](LICENSE)
 - [ ] Add reference to MRP and MCS
 - [ ] Add the Laplace's correction value as an option (similar to `--tol`)
 - [ ] Add a `--version`
+- [ ] Update tests
 
 ## See also
 

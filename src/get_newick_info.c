@@ -520,7 +520,7 @@ static double root_to_tip(const Node *n, double accumulated,
  * The root itself normally has no branch length in a rooted Newick tree.
  * Therefore root_to_tip starts at zero and adds branch lengths on children.
  */
-static void analyze_tree(Node *root, FileStats *fs, double tol) {
+static void analyze_tree(Node *root, FileStats *fs, double tol, double lp) {
     fs->dichotomous = true;
 
     /* Root structural heuristic, unless explicit [&R]/[&U] was found. */
@@ -590,7 +590,7 @@ static void analyze_tree(Node *root, FileStats *fs, double tol) {
 
             if (rp < 0.0) rp = 0.0;
             if (rp > 1.0) rp = 1.0;
-            if (rp == 1.0) rp -= 0.01; /* TODO: consider changing this value, to for example 0.001, and see how sensitive the MCS is */
+            if (rp == 1.0) rp -= lp;
 
             double cs = -log1p(-rp);
             rp_sum += rp;
@@ -662,7 +662,7 @@ static void print_file_report(const char *filename, const FileStats *fs,
     if (!print_taxa && !print_support && !print_tl && !print_brlens) {
 
         if (print_header) {
-            printf("Ntrees\tNtips\tblens\tsupport\troot\tdicho\tcomm\tultra\theight\tTL\tMRP\tsRP\tMCS\tsCS\tsumSup\tfile\n");
+            printf("Ntrees\tNtips\tblens\tsupport\troot\tdicho\tcomm\tultra\theight\tTL\tsumSup\tMRP\tsRP\tMCS\tsCS\tfile\n");
         }
 
         printf("%zu\t", fs->trees);
@@ -693,11 +693,11 @@ static void print_file_report(const char *filename, const FileStats *fs,
         printf("%.17g\t", fs->tree_length);
 
         if (fs->have_support_metrics) {
+            printf("%.17g\t", fs->support_sum);
             printf("%.17g\t", fs->mrp);
             printf("%.17g\t", fs->srp);
             printf("%.17g\t", fs->mcs);
             printf("%.17g\t", fs->scs);
-            printf("%.17g\t", fs->support_sum);
         } else {
             printf("NA\tNA\tNA\tNA\tNA\t");
         }
@@ -797,7 +797,7 @@ static void free_stats(FileStats *fs) {
 
 
 static bool parse_file(const char *filename, bool print_taxa, bool print_support,
-                       bool print_tl, bool print_header, bool print_fullpath, bool print_brlens, double tol) {
+                       bool print_tl, bool print_header, bool print_fullpath, bool print_brlens, double tol, double lp) {
     size_t len;
     char *text = read_entire_file(filename, &len);
     if (!text) return false;
@@ -871,7 +871,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
             return false;
         }
 
-        analyze_tree(root, &fs, tol);
+        analyze_tree(root, &fs, tol, lp);
 
         if (print_tl) {
             if (fs.trees == tree_lengths_cap) {
@@ -993,6 +993,7 @@ static void usage(const char *prog) {
     puts("  -b, --brlens     print branch lengths");
     puts("  --tl             print tree length");
     puts("  --tol VALUE      ultrametric comparison tolerance (default 1e-8)");
+    puts("  --lp VALUE       correction value for calculating MRP and MCS (default 0.01)");
     puts("  -n, --noverbose  do not print header in output");
     puts("  -p, --fullpath   print realpath to input file");
     puts("  -h, --help       show this help");
@@ -1009,7 +1010,8 @@ int main(int argc, char **argv) {
     bool print_header = true;
     bool print_fullpath = false;
     bool print_brlens = false;
-    double tol = 1e-8;
+    double tol = 1e-8; // default value for tolerance for deciding if tree is ultrametric
+    double lp = 0.01;  // default value for the "Laplace's" correction for high resampling proportion
 
     int first_file = 1;
 
@@ -1046,6 +1048,20 @@ int main(int argc, char **argv) {
                 return EXIT_FAILURE;
             }
             first_file += 2;
+        } else if (strcmp(arg, "--lp") == 0) {
+            if (first_file + 1 >= argc) {
+                fprintf(stderr, "--lp requires a value\n");
+                return EXIT_FAILURE;
+            }
+            char *end = NULL;
+            errno = 0;
+            lp = strtod(argv[first_file + 1], &end);
+            if (errno || end == argv[first_file + 1] || *end != '\0' ||
+                lp < 0.0 || !isfinite(lp)) {
+                fprintf(stderr, "invalid --l value: %s\n", argv[first_file + 1]);
+                return EXIT_FAILURE;
+            }
+            first_file += 2;
         } else if (strcmp(arg, "--noverbose") == 0 || strcmp(arg, "-n") == 0) {
             print_header = false;
             first_file++;
@@ -1076,7 +1092,7 @@ int main(int argc, char **argv) {
 
     int failures = 0;
     for (int i = first_file; i < argc; i++) {
-        if (!parse_file(argv[i], print_taxa, print_support, print_tl, print_header, print_fullpath, print_brlens, tol))
+        if (!parse_file(argv[i], print_taxa, print_support, print_tl, print_header, print_fullpath, print_brlens, tol, lp))
             failures++;
     }
 
