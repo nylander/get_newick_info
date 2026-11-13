@@ -206,7 +206,6 @@ MIT [License](LICENSE)
 - [ ] Test with non-dichotomous trees
 - [ ] Manually check MRP and MCS calculations on multi-tree files
 - [ ] Add reference to MRP and MCS
-- [ ] Add a `--version`
 - [ ] Update tests
 
 ## See also
