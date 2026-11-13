@@ -45,7 +45,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 typedef struct Node Node;
+
 
 struct Node {
     char *label;
@@ -59,6 +61,7 @@ struct Node {
     Node **children;
 };
 
+
 typedef struct {
     const char *s;
     size_t pos;
@@ -67,12 +70,14 @@ typedef struct {
     char error_msg[256];
 } Parser;
 
+
 typedef struct {
     size_t trees;
     size_t tips;
     size_t internal_nodes;
     size_t branch_count;
     size_t nbranch_lengths;
+    size_t branch_lengths_cap;
     double *branch_lengths;
     double tree_length;
     double height;
@@ -97,10 +102,12 @@ typedef struct {
     size_t support_cap;
 } FileStats;
 
+
 static void die_oom(void) {
     fprintf(stderr, "fatal: out of memory\n");
     exit(EXIT_FAILURE);
 }
+
 
 static void *xmalloc(size_t n) {
     void *p = malloc(n);
@@ -108,11 +115,13 @@ static void *xmalloc(size_t n) {
     return p;
 }
 
+
 static void *xcalloc(size_t n, size_t s) {
     void *p = calloc(n, s);
     if (!p && n && s) die_oom();
     return p;
 }
+
 
 static void *xrealloc(void *p, size_t n) {
     void *q = realloc(p, n);
@@ -120,12 +129,14 @@ static void *xrealloc(void *p, size_t n) {
     return q;
 }
 
+
 static char *xstrdup(const char *s) {
     size_t n = strlen(s) + 1;
     char *p = xmalloc(n);
     memcpy(p, s, n);
     return p;
 }
+
 
 static void parser_error(Parser *p, const char *msg) {
     if (!p->error) {
@@ -135,15 +146,18 @@ static void parser_error(Parser *p, const char *msg) {
     }
 }
 
+
 static void skip_ws(Parser *p) {
     while (p->pos < p->len && isspace((unsigned char)p->s[p->pos]))
         p->pos++;
 }
 
+
 static bool peek(Parser *p, char c) {
     skip_ws(p);
     return p->pos < p->len && p->s[p->pos] == c;
 }
+
 
 static bool consume(Parser *p, char c) {
     skip_ws(p);
@@ -153,6 +167,7 @@ static bool consume(Parser *p, char c) {
     }
     return false;
 }
+
 
 static char *read_quoted(Parser *p) {
     char quote = p->s[p->pos++];
@@ -182,10 +197,12 @@ static char *read_quoted(Parser *p) {
     return NULL;
 }
 
+
 static bool is_label_delim(char c) {
     return isspace((unsigned char)c) || c == '(' || c == ')' ||
            c == ',' || c == ':' || c == ';' || c == '[';
 }
+
 
 static char *read_label(Parser *p) {
     skip_ws(p);
@@ -207,6 +224,7 @@ static char *read_label(Parser *p) {
     return label;
 }
 
+
 static bool parse_number(Parser *p, double *value) {
     skip_ws(p);
     const char *start = p->s + p->pos;
@@ -226,6 +244,7 @@ static bool parse_number(Parser *p, double *value) {
     return true;
 }
 
+
 static bool parse_support_number(const char *s, double *v) {
     if (!s || !*s) return false;
 
@@ -239,11 +258,13 @@ static bool parse_support_number(const char *s, double *v) {
     return true;
 }
 
+
 static void node_add_child(Node *parent, Node *child) {
     parent->children = xrealloc(parent->children,
                                 (size_t)(parent->child_count + 1) * sizeof *parent->children);
     parent->children[parent->child_count++] = child;
 }
+
 
 static Node *node_new(bool leaf) {
     Node *n = xcalloc(1, sizeof *n);
@@ -251,6 +272,7 @@ static Node *node_new(bool leaf) {
     n->is_leaf = leaf;
     return n;
 }
+
 
 static void node_free(Node *n) {
     if (!n) return;
@@ -260,6 +282,7 @@ static void node_free(Node *n) {
     free(n->label);
     free(n);
 }
+
 
 static void consume_comment(Parser *p, FileStats *fs) {
     skip_ws(p);
@@ -302,6 +325,7 @@ static void consume_comment(Parser *p, FileStats *fs) {
     free(comment);
 }
 
+
 static void consume_comments(Parser *p, FileStats *fs) {
     for (;;) {
         skip_ws(p);
@@ -312,7 +336,9 @@ static void consume_comments(Parser *p, FileStats *fs) {
     }
 }
 
+
 static Node *parse_subtree(Parser *p, FileStats *fs);
+
 
 static Node *parse_internal(Parser *p, FileStats *fs) {
     Node *n = node_new(false);
@@ -374,15 +400,15 @@ static Node *parse_internal(Parser *p, FileStats *fs) {
         }
         n->length = length;
         n->has_length = true;
-        //fs->nbranch_lengths++;
         fs->branch_count++;
         fs->tree_length += length;
-        fs->branch_lengths[fs->nbranch_lengths++] = length; // Here we need to add to a position. Does this work?
+        add_branch_length(fs, length);
     }
 
     consume_comments(p, fs);
     return n;
 }
+
 
 static Node *parse_leaf(Parser *p, FileStats *fs) {
     Node *n = node_new(true);
@@ -414,14 +440,16 @@ static Node *parse_leaf(Parser *p, FileStats *fs) {
         }
         n->length = length;
         n->has_length = true;
-        fs->nbranch_lengths++;
+        //fs->nbranch_lengths++;
         fs->branch_count++;
         fs->tree_length += length;
+        add_branch_length(fs, length);
     }
 
     consume_comments(p, fs);
     return n;
 }
+
 
 static Node *parse_subtree(Parser *p, FileStats *fs) {
     skip_ws(p);
@@ -435,6 +463,7 @@ static Node *parse_subtree(Parser *p, FileStats *fs) {
 
     return parse_leaf(p, fs);
 }
+
 
 static void reset_per_tree_stats(FileStats *fs) {
     fs->tips = 0;
@@ -462,10 +491,12 @@ static void reset_per_tree_stats(FileStats *fs) {
     fs->nsupports = fs->support_cap = 0;
 
     // make this work
+    fs->branch_lengths_cap = 0;
     free(fs->branch_lengths);
     fs->branch_lengths = NULL;
 
 }
+
 
 static bool all_branch_lengths_present(const Node *n) {
     if (n->is_leaf) return n->has_length;
@@ -475,6 +506,7 @@ static bool all_branch_lengths_present(const Node *n) {
     }
     return true;
 }
+
 
 static double root_to_tip(const Node *n, double accumulated,
                           double *first_height, bool *first_set,
@@ -509,6 +541,7 @@ static double root_to_tip(const Node *n, double accumulated,
     }
     return result;
 }
+
 
 /*
  * The root itself normally has no branch length in a rooted Newick tree.
@@ -611,11 +644,13 @@ static void analyze_tree(Node *root, FileStats *fs, double tol) {
     }
 }
 
+
 static int cmp_str(const void *a, const void *b) {
     const char * const *sa = a;
     const char * const *sb = b;
     return strcmp(*sa, *sb);
 }
+
 
 static size_t count_unique_labels(char **labels, size_t n) {
     if (n == 0) return 0;
@@ -628,9 +663,23 @@ static size_t count_unique_labels(char **labels, size_t n) {
     return unique;
 }
 
+
 static void print_bool(bool b) {
     printf(b ? "true" : "false");
 }
+
+
+static void add_branch_length(FileStats *fs, double length) {
+    if (fs->nbranch_lengths == fs->branch_lengths_cap) {
+        fs->branch_lengths_cap = fs->branch_lengths_cap
+            ? fs->branch_lengths_cap * 2 : 16;
+        fs->branch_lengths = xrealloc(
+            fs->branch_lengths,
+            fs->branch_lengths_cap * sizeof *fs->branch_lengths);
+    }
+    fs->branch_lengths[fs->nbranch_lengths++] = length;
+}
+
 
 static void print_file_report(const char *filename, const FileStats *fs,
                               bool print_taxa, bool print_support, bool print_tl,
@@ -727,6 +776,7 @@ static void print_file_report(const char *filename, const FileStats *fs,
     }
 }
 
+
 static char *read_entire_file(const char *filename, size_t *len_out) {
     FILE *fp = fopen(filename, "rb");
     if (!fp) {
@@ -763,12 +813,15 @@ static char *read_entire_file(const char *filename, size_t *len_out) {
     return buf;
 }
 
+
 static void free_stats(FileStats *fs) {
     for (size_t i = 0; i < fs->ntaxa; i++)
         free(fs->taxa[i]);
     free(fs->taxa);
     free(fs->supports);
+    free(fs->branch_lengths);
 }
+
 
 static bool parse_file(const char *filename, bool print_taxa, bool print_support,
                        bool print_tl, bool print_header, bool print_fullpath, bool print_brlens, double tol) {
@@ -825,6 +878,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
             free(all_taxa);
             free(all_supports);
             free(tree_lengths);
+            free_stats(&report);
             return false;
         }
 
@@ -839,6 +893,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
             free(all_taxa);
             free(all_supports);
             free(tree_lengths);
+            free_stats(&report);
             return false;
         }
 
@@ -913,16 +968,9 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
 
         // Collect all brlens
         if (print_brlens) {
-            for (size_t i = 0; i < fs.nsupports; i++) {
-                if (all_nsupports == all_support_cap) {
-                    all_support_cap = all_support_cap ? all_support_cap * 2 : 64;
-                    all_supports = xrealloc(all_supports,
-                                             all_support_cap * sizeof *all_supports);
-                }
-                all_supports[all_nsupports++] = fs.supports[i];
-            }
+            for (size_t i = 0; i < fs.nbranch_lengths; i++)
+                add_branch_length(&report, fs.branch_lengths[i]);
         }
-        // 
 
         node_free(root);
     }
@@ -962,6 +1010,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     return true;
 }
 
+
 static void usage(const char *prog) {
     printf("Usage: %s [options] file1.nwk [file2.nwk ...]\n", prog);
     puts("");
@@ -978,6 +1027,7 @@ static void usage(const char *prog) {
     puts("Use at most one of --taxa, --support, and --tl.");
     puts("Numeric internal labels are interpreted as support values.");
 }
+
 
 int main(int argc, char **argv) {
     bool print_taxa = false;
@@ -1059,3 +1109,4 @@ int main(int argc, char **argv) {
 
     return failures ? EXIT_FAILURE : EXIT_SUCCESS;
 }
+
