@@ -338,6 +338,7 @@ static void consume_comments(Parser *p, FileStats *fs) {
 
 
 static Node *parse_subtree(Parser *p, FileStats *fs);
+static void add_branch_length(FileStats *fs, double length);
 
 
 static Node *parse_internal(Parser *p, FileStats *fs) {
@@ -831,6 +832,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
 
     Parser p = { text, 0, len, 0, {0} };
     FileStats fs = {0};
+    FileStats report = {0};
 
     /*
      * We accumulate file-wide totals, while retaining the most recent
@@ -976,7 +978,6 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     }
 
     /* Construct a file-level report from accumulated values. */
-    FileStats report = {0};
     report.trees = fs.trees;
     report.tips = count_unique_labels(all_taxa, all_ntaxa);
     report.nbranch_lengths = total_branch_lengths;
