@@ -996,6 +996,7 @@ static void usage(const char *prog) {
     puts("  --lp VALUE       correction value for calculating MRP and MCS (default 0.01)");
     puts("  -n, --noverbose  do not print header in output");
     puts("  -p, --fullpath   print realpath to input file");
+    puts("  -v, --version    print version");
     puts("  -h, --help       show this help");
     puts("");
     puts("Use at most one of --taxa, --support, --brlens and --tl.");
@@ -1010,8 +1011,9 @@ int main(int argc, char **argv) {
     bool print_header = true;
     bool print_fullpath = false;
     bool print_brlens = false;
-    double tol = 1e-8; // default value for tolerance for deciding if tree is ultrametric
-    double lp = 0.01;  // default value for the "Laplace's" correction for high resampling proportion
+    double tol = 1e-8;    // default value for tolerance for deciding if tree is ultrametric
+    double lp = 0.01;     // default value for the "Laplace's" correction for high resampling proportion
+    const char * version = "0.1"; // version
 
     int first_file = 1;
 
@@ -1070,6 +1072,9 @@ int main(int argc, char **argv) {
             first_file++;
         } else if (strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0) {
             usage(argv[0]);
+            return EXIT_SUCCESS;
+        } else if (strcmp(arg, "--version") == 0 || strcmp(arg, "-v") == 0) {
+            puts(version);
             return EXIT_SUCCESS;
         } else if (arg[0] == '-') {
             fprintf(stderr, "unknown option: %s\n", arg);

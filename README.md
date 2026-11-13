@@ -37,6 +37,7 @@ format](https://en.wikipedia.org/wiki/Newick_format).](img/img.jpg)
       --lp VALUE       correction value for calculating MRP and MCS (default 0.01)
       -n, --noverbose  do not print header in output
       -p, --fullpath   print realpath to input file
+      -v, --version    print version
       -h, --help       show this help
 
     Use at most one of --taxa, --support, --brlens and --tl.
@@ -201,7 +202,6 @@ MIT [License](LICENSE)
 - [ ] Test with non-dichotomous trees
 - [ ] Manually check MRP and MCS calculations on multi-tree files
 - [ ] Add reference to MRP and MCS
-- [ ] Add the Laplace's correction value as an option (similar to `--tol`)
 - [ ] Add a `--version`
 - [ ] Update tests
 
