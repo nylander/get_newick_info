@@ -1,9 +1,9 @@
 # get\_newick\_info
 
 A command-line program for reporting statistics about tree files in [Newick
-format
+format](https://en.wikipedia.org/wiki/Newick_format).
 
-![](https://en.wikipedia.org/wiki/Newick_format).](img/img.jpg)
+![](img/img.jpg)
 
 ---
 
