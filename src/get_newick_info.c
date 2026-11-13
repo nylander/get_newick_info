@@ -74,6 +74,24 @@ typedef struct {
     size_t support_cap;
 } FileStats;
 
+typedef struct {
+    size_t tips;
+    size_t nbranch_lengths;
+    double tree_length;
+    double height;
+    bool ultrametric;
+    bool rooted;
+    bool comments;
+    bool dichotomous;
+    bool have_support;
+    double support_sum;
+    bool have_support_metrics;
+    double mrp;
+    double mcs;
+    double srp;
+    double scs;
+} TreeStats;
+
 
 static void die_oom(void) {
     fprintf(stderr, "fatal: out of memory\n");
@@ -625,18 +643,6 @@ static int cmp_str(const void *a, const void *b) {
 }
 
 
-static size_t count_unique_labels(char **labels, size_t n) {
-    if (n == 0) return 0;
-    qsort(labels, n, sizeof *labels, cmp_str);
-    size_t unique = 1;
-    for (size_t i = 1; i < n; i++) {
-        if (strcmp(labels[i - 1], labels[i]) != 0)
-            unique++;
-    }
-    return unique;
-}
-
-
 static void print_bool(bool b) {
     printf(b ? "true" : "false");
 }
@@ -655,6 +661,8 @@ static void add_branch_length(FileStats *fs, double length) {
 
 
 static void print_file_report(const char *filename, const FileStats *fs,
+                              const TreeStats *tree_reports,
+                              size_t ntrees,
                               bool print_taxa, bool print_support, bool print_tl,
                               bool print_header, bool print_fullpath, bool print_brlens,
                               const double *tree_lengths) {
@@ -662,62 +670,60 @@ static void print_file_report(const char *filename, const FileStats *fs,
     if (!print_taxa && !print_support && !print_tl && !print_brlens) {
 
         if (print_header) {
-            printf("Ntrees\tNtips\tblens\tsupport\troot\tdicho\tcomm\tultra\theight\tTL\tsumSup\tMRP\tsRP\tMCS\tsCS\tfile\n");
+            printf("#\tNtips\tblens\tsupport\troot\tdicho\tcomm\tultra\theight\tTL\tsumSup\tMRP\tsRP\tMCS\tsCS\tNtrees\tfile\n");
         }
 
-        printf("%zu\t", fs->trees);
-        printf("%zu\t", fs->tips);
-        print_bool(fs->nbranch_lengths > 0);
-        putchar('\t');
-        print_bool(fs->have_support);
-        putchar('\t');
-        print_bool(fs->rooted);
-        putchar('\t');
-        print_bool(fs->dichotomous);
-        putchar('\t');
-        print_bool(fs->comments);
-        putchar('\t');
+        for (size_t i = 0; i < ntrees; i++) {
+            const TreeStats *tree = &tree_reports[i];
+            printf("%zu\t", i + 1);
+            printf("%zu\t", tree->tips);
+            print_bool(tree->nbranch_lengths > 0);
+            putchar('\t');
+            print_bool(tree->have_support);
+            putchar('\t');
+            print_bool(tree->rooted);
+            putchar('\t');
+            print_bool(tree->dichotomous);
+            putchar('\t');
+            print_bool(tree->comments);
+            putchar('\t');
+            print_bool(tree->ultrametric);
+            putchar('\t');
 
-        /*
-         * For a multi-tree file, the summary is meaningful only if every tree
-         * is ultrametric. The caller aggregates the per-tree result below.
-         */
-        print_bool(fs->ultrametric);
-        putchar('\t');
+            if (tree->ultrametric)
+                printf("%.17g\t", tree->height);
+            else
+                printf("NA\t");
 
-        if (fs->ultrametric)
-            printf("%.17g\t", fs->height);
-        else
-            printf("NA\t");
+            if (tree->nbranch_lengths > 0)
+                printf("%.17g\t", tree->tree_length);
+            else
+                printf("NA\t");
 
-        if (fs->nbranch_lengths > 0) {
-            printf("%.17g\t", fs->tree_length);
-        } else {
-            printf("NA\t");
-        }
-
-        if (fs->have_support_metrics) {
-            printf("%.17g\t", fs->support_sum);
-            printf("%.17g\t", fs->mrp);
-            printf("%.17g\t", fs->srp);
-            printf("%.17g\t", fs->mcs);
-            printf("%.17g\t", fs->scs);
-        } else {
-            printf("NA\tNA\tNA\tNA\tNA\t");
-        }
-
-        if (print_fullpath) {
-            char *resolved = realpath(filename, NULL);
-            if (!resolved) {
-                fprintf(stderr, "%s: realpath failed: %s\n",
-                        filename, strerror(errno));
-                exit(EXIT_FAILURE);
+            if (tree->have_support_metrics) {
+                printf("%.17g\t", tree->support_sum);
+                printf("%.17g\t", tree->mrp);
+                printf("%.17g\t", tree->srp);
+                printf("%.17g\t", tree->mcs);
+                printf("%.17g\t", tree->scs);
+            } else {
+                printf("NA\tNA\tNA\tNA\tNA\t");
             }
-            printf("%s\n", resolved);
-            free(resolved);
-        } else {
-            const char *base = strrchr(filename, '/');
-            printf("%s\n", base ? base + 1 : filename);
+
+            printf("%zu\t", ntrees);
+            if (print_fullpath) {
+                char *resolved = realpath(filename, NULL);
+                if (!resolved) {
+                    fprintf(stderr, "%s: realpath failed: %s\n",
+                            filename, strerror(errno));
+                    exit(EXIT_FAILURE);
+                }
+                printf("%s\n", resolved);
+                free(resolved);
+            } else {
+                const char *base = strrchr(filename, '/');
+                printf("%s\n", base ? base + 1 : filename);
+            }
         }
     }
 
@@ -807,35 +813,14 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
     FileStats fs = {0};
     FileStats report = {0};
 
-    /*
-     * We accumulate file-wide totals, while retaining the most recent
-     * tree's detailed values. For multiple trees, we separately track
-     * whether all trees are ultrametric and whether their heights agree.
-     */
-    size_t total_branch_lengths = 0;
-    double total_tree_length = 0.0;
-    double total_support_sum = 0.0;
-    size_t total_supports = 0;
-    double total_mrp = 0.0;
-    double total_mcs = 0.0;
-    double total_srp = 0.0;
-    double total_scs = 0.0;
-    bool all_support_metrics = true;
-    bool any_comments = false;
-    bool all_dichotomous = true;
-    bool all_ultrametric = true;
-    bool first_height_set = false;
-    double common_height = NAN;
-    bool heights_agree = true;
-    bool rooted_value_set = false;
-    bool rooted_value = false;
-
     char **all_taxa = NULL;
     size_t all_ntaxa = 0, all_taxa_cap = 0;
     double *all_supports = NULL;
     size_t all_nsupports = 0, all_support_cap = 0;
     double *tree_lengths = NULL;
     size_t tree_lengths_cap = 0;
+    TreeStats *tree_reports = NULL;
+    size_t tree_reports_cap = 0;
 
     while (1) {
         skip_ws(&p);
@@ -853,6 +838,7 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
             free(all_taxa);
             free(all_supports);
             free(tree_lengths);
+            free(tree_reports);
             free_stats(&report);
             return false;
         }
@@ -868,11 +854,35 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
             free(all_taxa);
             free(all_supports);
             free(tree_lengths);
+            free(tree_reports);
             free_stats(&report);
             return false;
         }
 
         analyze_tree(root, &fs, tol, lp);
+
+        if (fs.trees == tree_reports_cap) {
+            tree_reports_cap = tree_reports_cap ? tree_reports_cap * 2 : 16;
+            tree_reports = xrealloc(tree_reports,
+                                   tree_reports_cap * sizeof *tree_reports);
+        }
+        tree_reports[fs.trees] = (TreeStats) {
+            .tips = fs.tips,
+            .nbranch_lengths = fs.nbranch_lengths,
+            .tree_length = fs.tree_length,
+            .height = fs.height,
+            .ultrametric = fs.ultrametric,
+            .rooted = fs.rooted,
+            .comments = fs.comments,
+            .dichotomous = fs.dichotomous,
+            .have_support = fs.have_support,
+            .support_sum = fs.support_sum,
+            .have_support_metrics = fs.have_support_metrics,
+            .mrp = fs.mrp,
+            .mcs = fs.mcs,
+            .srp = fs.srp,
+            .scs = fs.scs
+        };
 
         if (print_tl) {
             if (fs.trees == tree_lengths_cap) {
@@ -883,43 +893,6 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
             tree_lengths[fs.trees] = fs.tree_length;
         }
         fs.trees++;
-        total_branch_lengths += fs.nbranch_lengths;
-        total_tree_length += fs.tree_length;
-        total_support_sum += fs.support_sum;
-        total_supports += fs.nsupports;
-        if (fs.have_support_metrics) {
-            total_mrp += fs.mrp;
-            total_mcs += fs.mcs;
-            total_srp += fs.srp;
-            total_scs += fs.scs;
-        } else {
-            all_support_metrics = false;
-        }
-        any_comments = any_comments || fs.comments;
-        all_dichotomous = all_dichotomous && fs.dichotomous;
-        all_ultrametric = all_ultrametric && fs.ultrametric;
-
-        if (fs.trees == 1) {
-            rooted_value = fs.rooted;
-            rooted_value_set = true;
-        } else if (rooted_value_set && rooted_value != fs.rooted) {
-            /*
-             * A file containing mixed explicit/structural rootedness is
-             * reported as false rather than inventing a third state.
-             */
-            rooted_value = false;
-        }
-
-        if (fs.ultrametric) {
-            if (!first_height_set) {
-                common_height = fs.height;
-                first_height_set = true;
-            } else {
-                double scale = fmax(1.0, fmax(fabs(common_height), fabs(fs.height)));
-                if (fabs(common_height - fs.height) > tol * scale)
-                    heights_agree = false;
-            }
-        }
 
         for (size_t i = 0; i < fs.ntaxa; i++) {
             if (all_ntaxa == all_taxa_cap) {
@@ -950,35 +923,20 @@ static bool parse_file(const char *filename, bool print_taxa, bool print_support
         node_free(root);
     }
 
-    /* Construct a file-level report from accumulated values. */
+    /* Aggregate values only for the value-only output options. */
     report.trees = fs.trees;
-    report.tips = count_unique_labels(all_taxa, all_ntaxa);
-    report.nbranch_lengths = total_branch_lengths;
-    report.tree_length = total_tree_length;
-    report.comments = any_comments;
-    report.dichotomous = all_dichotomous;
-    report.ultrametric = all_ultrametric && first_height_set && heights_agree;
-    report.height = report.ultrametric ? common_height : NAN;
-    report.rooted = rooted_value_set ? rooted_value : false;
-    report.have_support = total_supports > 0;
-    report.support_sum = total_support_sum;
-    report.have_support_metrics = fs.trees > 0 && all_support_metrics;
-    if (report.have_support_metrics) {
-        report.mrp = total_mrp / (double)fs.trees;
-        report.mcs = total_mcs / (double)fs.trees;
-        report.srp = total_srp / (double)fs.trees;
-        report.scs = total_scs / (double)fs.trees;
-    }
     report.ntaxa = all_ntaxa;
     report.taxa = all_taxa;
     report.nsupports = all_nsupports;
     report.supports = all_supports;
 
-    print_file_report(filename, &report, print_taxa, print_support, print_tl,
+    print_file_report(filename, &report, tree_reports, fs.trees,
+                      print_taxa, print_support, print_tl,
                       print_header, print_fullpath, print_brlens, tree_lengths);
 
     free(text);
     free(tree_lengths);
+    free(tree_reports);
     free_stats(&fs);
     free_stats(&report);
     return true;
