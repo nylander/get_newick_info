@@ -11,22 +11,23 @@ format](https://en.wikipedia.org/wiki/Newick_format).
 
 | Column | Label       | Property |
 | ------ | ----------- | -------- |
-| 1.     | **Ntrees**  |  Number of trees |
-| 2.     | **Ntips**   |  Number of unique tip labels across all trees |
-| 3.     | **blens**   |  Are branch lengths are present? |
+| 1.     | **#**       |  Position of this tree in the input file |
+| 2.     | **Ntips**   |  Number of tips in this tree |
+| 3.     | **blens**   |  Are branch lengths present? |
 | 4.     | **support** |  Do branches have support values? |
-| 5.     | **root**    |  Is tree rooted? |
-| 6.     | **dicho**   |  Is tree dichotomous? |
+| 5.     | **root**    |  Is the tree rooted? |
+| 6.     | **dicho**   |  Is the tree dichotomous? |
 | 7.     | **comm**    |  Are there comments present? |
-| 8.     | **ultra**   |  Is tree ultrametric |
-| 9.     | **height**  |  Tree height (when all trees are ultrametric) |
-| 10.    | **TL**      |  Total tree length (sum of all branch lengths) |
+| 8.     | **ultra**   |  Is the tree ultrametric? |
+| 9.     | **height**  |  Tree height (when ultrametric) |
+| 10.    | **TL**      |  Total length of this tree's branches |
 | 11.    | **sumSup**  |  Sum of support values |
 | 12.    | **MRP**     |  Mean resampling proportion |
 | 13.    | **sRP**     |  Standard deviation of resampling proportion |
 | 14.    | **MCS**     |  Mean character support |
 | 15.    | **sCS**     |  Standard deviation of character support |
-| 16.    | **file**    |  Input file name |
+| 16.    | **Ntrees**  |  Total number of trees in the input file |
+| 17.    | **file**    |  Input file name |
 
 ## Usage and Options
 
@@ -82,8 +83,9 @@ Multiple input files are accepted. Example:
 ./get_newick_info -n ../data/*.tree | column -t | less -S
 ```
 
-Multi-tree files are accepted (note however, some of the statistics needs to be
-tested for multi-tree files. See [TODO](#todo) below). Example:
+Multi-tree files are accepted. Each tree is reported on its own row, with its
+position in the file in the first column and the file's total tree count in the
+second-to-last column. Example:
 
 ```sh
 ./get_newick_info -n ../data/*.trees | column -t | less -S
@@ -127,18 +129,14 @@ treated as percentages and divided by 100. Values are limited to the range
 0--1, and an RP of 1 is reduced to $1-lp$ before calculation (to avoid division by 0).
 The value of `lp` can be set by the `--lp` option and default is 0.01.
 
-The summary reports `NA` when no numeric support labels are found or the tree
-has three or fewer tips. For files with multiple trees, MRP and MCS are the
-arithmetic means of the per-tree metrics; if any tree has no usable support
-metrics, both file-level metrics are `NA`.
+Each tree is reported separately. MRP and MCS are `NA` when no numeric support
+labels are found or the tree has three or fewer tips.
 
 The per-tree standard deviations `s_RP` and `s_CS` are population standard
 deviations over the available support labels, dividing by the number of labels
 rather than `n - 3`. They use the same normalized RP values as MRP and the
-transformed values `CS = -log(1 - RP)` as MCS. For multiple trees, the summary
-reports the arithmetic mean of the per-tree standard deviations, not the
-standard deviation of pooled observations or of the per-tree means. Both
-standard deviations are `NA` if any tree has no usable support metrics.
+transformed values `CS = -log(1 - RP)` as MCS. Both standard deviations are
+`NA` when the individual tree has no usable support metrics.
 
 ### Ultrametricity
 
@@ -150,9 +148,7 @@ A tree is considered ultrametric when:
 
 The default tolerance is `1e-8`.
 
-For a file containing multiple trees, the file-level `Is the tree ultrametric`
-field is true only when every tree is ultrametric and their heights agree within
-the tolerance. Otherwise `Tree height: NA` is reported.
+Ultrametricity and height are reported separately for each tree.
 
 ### Comments
 
@@ -197,9 +193,6 @@ MIT [License](LICENSE)
 
 ## TODO
 
-- [ ] Test with multi-tree files: Are properties reported meaningful or not on
-  many trees? Or should we print output for every tree as default?
-  Can a "verbose summary" be made as separate option?
 - [ ] Test with BEAST-extended files
 - [ ] Test with almost-ultrametric files
 - [ ] Test with rooted/unrooted trees

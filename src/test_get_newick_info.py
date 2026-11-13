@@ -9,14 +9,14 @@ ROOT = Path(__file__).resolve().parent.parent
 PROGRAM = ROOT / "src" / "get_newick_info"
 EXAMPLE = ROOT / "data" / "brlens_bp.tree"
 HEADER = (
-    "Ntrees\tNtips\tblens\tsupport\troot\tdicho\tcomm\tultra\t"
-    "height\tTL\tsumSup\tMRP\tsRP\tMCS\tsCS\tfile\n"
+    "#\tNtips\tblens\tsupport\troot\tdicho\tcomm\tultra\t"
+    "height\tTL\tsumSup\tMRP\tsRP\tMCS\tsCS\tNtrees\tfile\n"
 )
 EXAMPLE_ROW = (
     "1\t8\ttrue\ttrue\tfalse\tfalse\tfalse\tfalse\tNA\t"
     "0.48529400210000007\t288\t0.57400000000000007\t"
     "0.24368832553078942\t1.4543634882709771\t1.5904965740184576\t"
-    "brlens_bp.tree\n"
+    "1\tbrlens_bp.tree\n"
 )
 TAXA = (
     "Andricus_curvator\n"
@@ -53,13 +53,21 @@ class OutputTests(unittest.TestCase):
         return result.stdout
 
     def summary(self, output):
+        summaries = self.summaries(output)
+        self.assertEqual(len(summaries), 1)
+        return summaries[0]
+
+    def summaries(self, output):
         lines = output.splitlines()
-        self.assertEqual(len(lines), 2)
+        self.assertTrue(lines)
         self.assertEqual(lines[0] + "\n", HEADER)
         columns = lines[0].split("\t")
-        values = lines[1].split("\t")
-        self.assertEqual(len(values), len(columns))
-        return dict(zip(columns, values))
+        reports = []
+        for line in lines[1:]:
+            values = line.split("\t")
+            self.assertEqual(len(values), len(columns))
+            reports.append(dict(zip(columns, values)))
+        return reports
 
     def summary_metric(self, output, label):
         return float(self.summary(output)[label])
@@ -115,7 +123,10 @@ class OutputTests(unittest.TestCase):
             self.assertEqual(self.run_info("--tl", path, path), "3\n7\n3\n7\n")
             self.assertEqual(self.run_info("--taxa", path), "A\nB\nC\n")
             self.assertEqual(self.run_info("--support", path), "90\n80\n")
-            self.assertEqual(self.summary(self.run_info(path))["TL"], "10")
+            reports = self.summaries(self.run_info(path))
+            self.assertEqual([report["TL"] for report in reports], ["3", "7"])
+            self.assertEqual([report["#"] for report in reports], ["1", "2"])
+            self.assertEqual([report["Ntrees"] for report in reports], ["2", "2"])
             path.write_text("(A,B);\n")
             self.assertEqual(self.run_info("--tl", path), "0\n")
             self.assertEqual(self.run_info("--support", path), "")
@@ -171,6 +182,26 @@ class OutputTests(unittest.TestCase):
 
     def test_default_summary(self):
         self.assertEqual(self.run_info(EXAMPLE), HEADER + EXAMPLE_ROW)
+
+    def test_multi_tree_file_reports_each_tree(self):
+        expected = (
+            "1\t8\ttrue\ttrue\tfalse\tfalse\tfalse\tfalse\tNA\t"
+            "0.48529400210000007\t288\t0.57400000000000007\t"
+            "0.24368832553078942\t1.4543634882709771\t1.5904965740184576\t"
+            "3\tmulti.trees\n"
+            "2\t8\ttrue\ttrue\tfalse\tfalse\tfalse\tfalse\tNA\t"
+            "0.4637315622\t298\t0.59599999999999997\t"
+            "0.2218648237102944\t1.1016457698187057\t0.6829615010376946\t"
+            "3\tmulti.trees\n"
+            "3\t8\ttrue\ttrue\tfalse\tfalse\tfalse\tfalse\tNA\t"
+            "0.47744841850000003\t308\t0.6140000000000001\t"
+            "0.24630062931304095\t1.5586228729976344\t1.5546836427319075\t"
+            "3\tmulti.trees\n"
+        )
+        self.assertEqual(
+            self.run_info(ROOT / "data" / "multi.trees"),
+            HEADER + expected,
+        )
 
     def test_summary_output_options(self):
         for option in ("-n", "--noverbose"):
@@ -286,21 +317,18 @@ class OutputTests(unittest.TestCase):
         for column in ("MRP", "sRP", "MCS", "sCS"):
             self.assertEqual(report[column], "NA")
 
-    def test_multiple_tree_metrics_are_averaged(self):
+    def test_multiple_tree_metrics_are_reported_per_tree(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "trees.nwk"
             path.write_text("((A,B)0.5,C,D);((E,F)1.0,G,H);\n")
-            output = self.run_info(path)
-        self.assertAlmostEqual(
-            self.summary_metric(output, "MRP"),
-            0.745,
-        )
-        self.assertAlmostEqual(
-            self.summary_metric(output, "MCS"),
-            (-math.log(0.5) - math.log(0.01)) / 2,
-        )
+            reports = self.summaries(self.run_info(path))
+        self.assertEqual([report["#"] for report in reports], ["1", "2"])
+        self.assertAlmostEqual(float(reports[0]["MRP"]), 0.5)
+        self.assertAlmostEqual(float(reports[1]["MRP"]), 0.99)
+        self.assertAlmostEqual(float(reports[0]["MCS"]), -math.log(0.5))
+        self.assertAlmostEqual(float(reports[1]["MCS"]), -math.log(0.01))
 
-    def test_multiple_tree_standard_deviations_are_averaged(self):
+    def test_multiple_tree_standard_deviations_are_reported_per_tree(self):
         trees = (
             ("((A,B)0.2,(C,D)0.8,E);", [0.2, 0.8]),
             ("((A,B)20,(C,D)40,(E,F)60,G);", [0.2, 0.4, 0.6]),
@@ -309,26 +337,22 @@ class OutputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "trees.nwk"
             path.write_text("".join(tree for tree, _ in trees))
-            output = self.run_info(path)
+            reports = self.summaries(self.run_info(path))
 
         for label, transform in (
             ("sRP", lambda rp: rp),
             ("sCS", lambda rp: -math.log1p(-rp)),
         ):
-            deviations = []
-            for _, supports in trees:
+            for report, (_, supports) in zip(reports, trees):
                 values = [transform(rp) for rp in supports]
                 mean = sum(values) / len(values)
-                deviations.append(
-                    math.sqrt(sum((value - mean) ** 2 for value in values) / len(values))
+                expected = math.sqrt(
+                    sum((value - mean) ** 2 for value in values) / len(values)
                 )
-            with self.subTest(label=label):
-                self.assertAlmostEqual(
-                    self.summary_metric(output, label),
-                    sum(deviations) / len(deviations),
-                )
+                with self.subTest(label=label, tree=report["#"]):
+                    self.assertAlmostEqual(float(report[label]), expected)
 
-    def test_multiple_tree_standard_deviations_are_na_if_any_tree_is_unsupported(self):
+    def test_tree_standard_deviations_are_na_only_for_unsupported_tree(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "trees.nwk"
             for trees in (
@@ -337,10 +361,12 @@ class OutputTests(unittest.TestCase):
             ):
                 with self.subTest(trees=trees):
                     path.write_text(trees)
-                    output = self.run_info(path)
-                    report = self.summary(output)
+                    reports = self.summaries(self.run_info(path))
+                    supported = next(report for report in reports if report["support"] == "true")
+                    unsupported = next(report for report in reports if report["support"] == "false")
+                    self.assertNotEqual(supported["MRP"], "NA")
                     for column in ("MRP", "sRP", "MCS", "sCS"):
-                        self.assertEqual(report[column], "NA")
+                        self.assertEqual(unsupported[column], "NA")
 
 
 if __name__ == "__main__":
