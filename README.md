@@ -49,17 +49,13 @@ format](https://en.wikipedia.org/wiki/Newick_format).
 
 ## Download and Build
 
-Note: requires a C compiler (and python3 for testing)
+See file [INSTALL](INSTALL)
 
 ```sh
 git clone https://github.com/nylander/get_newick_info.git
 cd get_newick_info/src
 make
 ```
-
-You can then put the executable (`get_newick_info`) in your PATH.
-Alternatively, you can install in your local `~/bin` by `INSTALL_PATH=$HOME
-make install` or system wide by, for example, use `sudo make install`.
 
 ## Usage examples
 
@@ -125,12 +121,34 @@ the support statistics.
 
 ### MCS and MRP
 
+Mean character support (MCS) and mean resampling proportions (MRP) are simple
+summary statistics based on node support (outlined in ["Measuring Phylogenetic
+Information Content Based on Clade
+Support"](doc/2026.11.13.766116v1.full.pdf)).
+
+They are calculated as
+
+$$
+MRP=\frac{1}{n-3}\sum_{i=1}^{n-3}RP_i
+$$
+
+and
+
+$$
+MCS=\frac{1}{n-3}\sum_{i=1}^{n-3}ln\frac{1}{1-RP_i}
+$$
+
+where *RP* is the resampling proportion for node *i*, and *n* is the number of
+tips in the tree. Both summaries measure the average of observed
+support in relationship to the potential maximum support (all nodes supported by
+100%).
+
 MRP and MCS are calculated from all numeric support labels found in a tree,
 using `n - 3` as the denominator regardless of how many support labels are
 present, where `n` is the tip count. Support values whose maximum exceeds 1 are
 treated as percentages and divided by 100. Values are limited to the range
 0--1, and an RP of 1 is reduced to $1-lp$ before calculation (to avoid division by 0).
-The value of `lp` can be set by the `--lp` option and default is 0.01.
+The value of *lp* can be set by the `--lp` option and default is 0.01.
 
 Each tree is reported separately. MRP and MCS are `NA` when no numeric support
 labels are found or the tree has three or fewer tips.
@@ -198,6 +216,4 @@ MIT [License](LICENSE)
 - [ ] Test with almost-ultrametric files
 - [ ] Test with rooted/unrooted trees
 - [ ] Test with non-dichotomous trees
-- [ ] Manually check MRP and MCS calculations on multi-tree files
-- [ ] Add reference to MRP and MCS
 

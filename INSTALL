@@ -1,0 +1,21 @@
+# Installation instructions for Get Newick Info
+
+## Prerequisites
+
+Requires a C compiler and, for optinal testing, python3.
+
+## Build
+
+Change directory to `src` folder and
+
+    make
+
+## Install
+
+To install in to system PATH (usually requires root access (`sudo`))
+
+   make install
+
+To install in other location, e.g. user bin:
+
+    INSTALL_PATH=$HOME make install
