@@ -216,4 +216,5 @@ MIT [License](LICENSE)
 - [ ] Test with almost-ultrametric files
 - [ ] Test with rooted/unrooted trees
 - [ ] Test with non-dichotomous trees
+- [ ] Add option for changing number of decimals in output
 
