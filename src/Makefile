@@ -22,7 +22,4 @@ uninstall:
 clean:
 	rm -f $(TARGET)
 
-test: $(TARGET)
-	python3 test_get_newick_info.py
-
-.PHONY: all  install uninstall clean test
+.PHONY: all install uninstall clean
