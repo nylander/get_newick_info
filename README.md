@@ -53,21 +53,21 @@ See file [INSTALL](INSTALL)
 
 ```sh
 git clone https://github.com/nylander/get_newick_info.git
-cd get_newick_info/src
-make
+cd get_newick_info
+./autogen.sh && ./configure && make
 ```
 
 ## Usage examples
 
 ```sh
-./get_newick_info ../data/brlens_pp.tree
-./get_newick_info -n ../data/brlens_pp.tree
-./get_newick_info --taxa ../data/brlens_pp.tree
-./get_newick_info --support ../data/brlens_pp.tree
-./get_newick_info --brlens ../data/brlens_pp.tree
-./get_newick_info --tl ../data/brlens_pp.tree
-./get_newick_info --tol 1e-7 ../data/ultrametric.tree
-./get_newick_info --tol 1e-11 ../data/ultrametric.tree
+./get_newick_info data/brlens_pp.tree
+./get_newick_info -n data/brlens_pp.tree
+./get_newick_info --taxa data/brlens_pp.tree
+./get_newick_info --support data/brlens_pp.tree
+./get_newick_info --brlens data/brlens_pp.tree
+./get_newick_info --tl data/brlens_pp.tree
+./get_newick_info --tol 1e-7 data/ultrametric.tree
+./get_newick_info --tol 1e-11 data/ultrametric.tree
 ```
 
 Without an output option, the full summary is printed. `--taxa` (or `-t`)
@@ -80,7 +80,7 @@ most one per invocation.
 Multiple input files are accepted. Example:
 
 ```sh
-./get_newick_info -n ../data/*.tree | column -t | less -S
+./get_newick_info -n data/*.tree | column -t | less -S
 ```
 
 Multi-tree files are accepted. Each tree is reported on its own row, with its
@@ -88,7 +88,7 @@ position in the file in the first column and the file's total tree count in the
 second-to-last column. Example:
 
 ```sh
-./get_newick_info -n ../data/*.trees | column -t | less -S
+./get_newick_info -n data/*.trees | column -t | less -S
 ```
 
 ## Important conventions
