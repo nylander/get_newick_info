@@ -7,7 +7,12 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 add_executable(get_newick_info src/get_newick_info.c)
 target_link_libraries(get_newick_info PRIVATE m)
-install(TARGETS get_newick_info DESTINATION bin)
+include(GNUInstallDirs)
+install(TARGETS get_newick_info RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+
+configure_file(cmake/uninstall.cmake.in uninstall.cmake @ONLY)
+add_custom_target(uninstall
+    COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake")
 
 include(CTest)
 if(BUILD_TESTING)

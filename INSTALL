@@ -2,7 +2,26 @@
 
 ## Prerequisites
 
-Requires a C compiler and, for the existing Makefile tests, Python 3.
+Requires a C99 compiler, the math library, and Make or another supported build
+tool.
+
+## Autoconf and Automake
+
+Requires Autoconf 2.71 or later and Automake. From the project root:
+
+    ./autogen.sh && ./configure && make
+
+The executable is `./get_newick_info`. Install it to the default `/usr/local`
+prefix with `make install`, or set another prefix before building:
+
+    ./configure --prefix="$HOME/.local"
+    make
+    make install
+
+Use `make uninstall` to remove the installed executable and `make clean` to
+remove build products. Use `./configure --bindir=PATH` to select a different
+binary directory. For staged installs, set `DESTDIR` consistently for
+both `make install` and `make uninstall`. `make check` currently runs no tests.
 
 ## CMake
 
@@ -26,9 +45,10 @@ To install into a different prefix, set it when configuring:
     cmake --build build
     cmake --build build --target install
 
-## Make
-
-Alternatively, change to the `src` directory and run `make`. To install to
-the default `/usr/local` prefix, run `make install`; for a different prefix:
-
-    INSTALL_PATH=$HOME make install
+The executable is `build/get_newick_info`. Use
+`cmake --build build --target uninstall` to remove files listed in the install
+manifest and `cmake --build build --target clean` to remove build products.
+Set `CMAKE_INSTALL_BINDIR` when configuring to select a different binary
+directory.
+For staged installs, set `DESTDIR` consistently for both the install and
+uninstall commands.
