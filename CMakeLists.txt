@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.10)
+project(get_newick_info VERSION 0.1.0)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -O2 -Wall -Wextra -pedantic")
+add_executable(get_newick_info src/get_newick_info.c)
+install(TARGETS get_newick_info DESTINATION bin)
